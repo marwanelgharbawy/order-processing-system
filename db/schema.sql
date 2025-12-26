@@ -51,6 +51,7 @@ CREATE TABLE ADMIN_ORDER (
     Quantity INT NOT NULL,
     Status VARCHAR(20) DEFAULT 'Pending',
     ISBN VARCHAR(20),
+    CONSTRAINT chk_status CHECK (Status IN ('Pending', 'Received')),
     FOREIGN KEY (ISBN) REFERENCES BOOK(ISBN) ON DELETE CASCADE
 );
 
