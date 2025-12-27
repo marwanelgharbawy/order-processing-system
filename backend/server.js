@@ -105,6 +105,49 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Add book (Admin)
+app.post('/books', async (req, res) => {
+    const { isbn, title, category, price, stockQuantity } = req.body;
+
+    try {
+        await db.query(
+            'INSERT INTO BOOK (ISBN, Title, Category, Price, StockQuantity) VALUES (?, ?, ?, ?, ?)',
+            [isbn, title, category, price, stockQuantity]
+        );
+        console.log(`Book added successfully: ${isbn}`);
+        res.status(201).json({ message: "Book added successfully" });
+    } catch (err) {
+        console.error("Insertion failed:", err);
+        res.status(500).json({ error: "Failed to add book" });
+    }
+});
+
+// Modify book details (Admin)
+app.put('/books/:isbn', async (req, res) => {
+    const { isbn } = req.params;
+    const { title, category, price, stockQuantity } = req.body;
+
+    try {
+        // execute the update
+        const [result] = await db.query(
+            'UPDATE BOOK SET Title = ?, Category = ?, Price = ?, StockQuantity = ? WHERE ISBN = ?',
+            [title, category, price, stockQuantity, isbn]
+        );
+
+        // If no rows were affected, the ISBN doesn't exist
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Book not found" });
+        }
+
+        console.log(`Book updated successfully: ${isbn}`);
+        res.json({ message: "Book updated successfully" });
+
+    } catch (err) {
+        console.error("Update failed:", err);
+        res.status(500).json({ error: "Failed to update book" });
+    }
+});
+
 // Admin Orders
 app.get('/admin/orders', async (req, res) => {
     try {
@@ -121,6 +164,7 @@ app.get('/admin/orders', async (req, res) => {
     }
 });
 
+// Customer Orders
 // Checking out requires a series of operations that must all succeed
 // If any fail, we need to rollback everything -> transaction
 app.post('/checkout', async (req, res) => {
