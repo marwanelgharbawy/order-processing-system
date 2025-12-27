@@ -346,9 +346,93 @@ app.post('/admin/orders/confirm/:restockId', async (req, res) => {
 
 // System Reports (Admin Only)
 // Few SQL queries
+// Total sales for books in the previous month
+app.get('/admin/reports/sales/previous-month', async (req, res) => {
+    try {
+        const query = `
+            SELECT SUM(TotalPrice) AS TotalSales 
+            FROM CUSTOMER_ORDER 
+            WHERE OrderDate >= LAST_DAY(CURRENT_DATE - INTERVAL 2 MONTH) + INTERVAL 1 DAY
+            AND OrderDate < LAST_DAY(CURRENT_DATE - INTERVAL 1 MONTH) + INTERVAL 1 DAY
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to generate report" });
+    }
+});
 
-app.get('/admin/reports/total-sales/', async (req, res) => {
-    
+// Total sales for books on a certain day
+// param: /admin/reports/sales/day?date=2025-12-25
+app.get('/admin/reports/sales/day', async (req, res) => {
+    const { date } = req.query; 
+    try {
+        const query = `
+            SELECT SUM(TotalPrice) AS TotalSales 
+            FROM CUSTOMER_ORDER 
+            WHERE DATE(OrderDate) = ?
+        `;
+        const [rows] = await db.query(query, [date]);
+        res.json(rows[0] || { TotalSales: 0 });
+    } catch (err) {
+        res.status(500).json({ error: "Failed to generate report" });
+    }
+});
+
+// Top 5 Customers (For the Last 3 Months)
+app.get('/admin/reports/top-customers', async (req, res) => {
+    try {
+        const query = `
+            SELECT CustomerUsername, SUM(TotalPrice) AS TotalSpent
+            FROM CUSTOMER_ORDER
+            WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            GROUP BY CustomerUsername
+            ORDER BY TotalSpent DESC
+            LIMIT 5
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to generate report" });
+    }
+});
+
+// Top 10 Selling Books (For the Last 3 Months)
+app.get('/admin/reports/top-books', async (req, res) => {
+    try {
+        const query = `
+            SELECT B.Title, B.ISBN, SUM(OI.Quantity) AS TotalCopiesSold
+            FROM ORDER_ITEMS OI
+            JOIN CUSTOMER_ORDER CO ON OI.OrderNo = CO.OrderNo
+            JOIN BOOK B ON OI.ISBN = B.ISBN
+            WHERE CO.OrderDate >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
+            GROUP BY B.ISBN
+            ORDER BY TotalCopiesSold DESC
+            LIMIT 10
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to generate report" });
+    }
+});
+
+// Total Number of Times a Specific Book Has Been Ordered (Replenishment)
+// param: /admin/reports/replenishment/978-0134685991
+app.get('/admin/reports/replenishment/:isbn', async (req, res) => {
+    const { isbn } = req.params;
+    try {
+        const query = `
+            SELECT COUNT(*) AS TimesOrdered, SUM(Quantity) AS TotalQuantityRequested
+            FROM ADMIN_ORDER
+            WHERE ISBN = ?
+        `;
+        const [rows] = await db.query(query, [isbn]);
+        res.json(rows[0]);
+    } catch (err) {
+        res.status(500).json({ error: "Failed to generate report" });
+    }
 });
 
 app.listen(PORT, () => {
