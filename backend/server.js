@@ -83,6 +83,46 @@ app.post('/register', async (req, res) => {
     }
 });
 
+// User login
+app.post('/login', async (req, res) => {
+    const { username, password } = req.body;
+    
+    try {
+        const [rows] = await db.query(
+            'SELECT * FROM CUSTOMER WHERE Username = ? AND Password = ?', 
+            [username, password]
+        );
+
+        if (rows.length > 0) {
+            res.json({ message: "Login successful", user: rows[0] });
+            console.log("User logged in:", username);
+        } else {
+            res.status(401).json({ error: "Invalid username or password" });
+            console.log("Login failed for user:", username);
+        }
+    } catch (err) {
+        res.status(500).json({ error: "Login failed" });
+    }
+});
+
+// Admin Orders
+app.get('/admin/orders', async (req, res) => {
+    try {
+        const [rows] = await db.query('SELECT * FROM ADMIN_ORDER');
+        res.json(rows);
+        if (rows.length === 0) {
+            console.log("No admin orders found.");
+        } else {
+            console.log(`Fetched ${rows.length} admin orders.`);
+        }
+        console.log("Fetched all admin orders.");
+    } catch (err) {
+        res.status(500).json({ error: "Failed to fetch admin orders" });
+    }
+});
+
+
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
