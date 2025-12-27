@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="admin.css">
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <aside>
+        <h2>BookStore</h2>
+        <nav>
+            <a onclick="showSection('shop')" id="nav-shop" class="active">📚 Browse Books</a>
+            <a onclick="showSection('add_books')" id="nav-add_books">➕ Add Books</a>
+            <a onclick="showSection('edit_books')" id="nav-edit_books">✏️ Edit Books</a>
+            <a onclick="showSection('orders')" id="nav-orders">📦 Admin Orders</a>
+            <a onclick="showSection('place_orders')" id="nav-place_orders">🚚 Place Orders</a>
+            <a onclick="showSection('confirm_orders')" id="nav-confirm_orders">✅ Confirm Orders</a>
+            <a onclick="showSection('system_reports')" id="nav-system_reports">📊 System Reports</a>
+        </nav>
+        <div class="logout">✖ Logout</div>
+    </aside>
+
+    <main>
+        
+        <section id="shop" class="section active">
+            <h1>Search for Books</h1>
+            <div class="search-container">
+                <input type="text" id="shopSearchInput" placeholder="Search by ISBN...">
+                <select id="shopCategorySelect">
+                    <option value="All Categories">All Categories</option>
+                    <option value="Science">Science</option>
+                    <option value="Art">Art</option>
+                    <option value="History">History</option>
+                </select>
+                <button class="btn-add" style="width: auto;" onclick="handleShopSearch()">Search</button>
+            </div>
+            
+            <div class="book-grid" id ="book-container">
+            </div>
+        </section>
+
+       <section id="orders" class="section">
+            <h1>Order History</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Total Amount</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody id="admin-orders-table-body">
+                    </tbody>
+            </table>
+        </section>
+
+        <section id="add_books" class="section">
+            <h1>Add New Book</h1>
+            <div class="search-container" style="display: block;">
+                <form id="addBookForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <input type="text" id="isbn" placeholder="ISBN" required>
+                    <input type="text" id="title" placeholder="Book Title" required>
+                    <input type="text" id="authors" placeholder="Author(s) - separate with commas" required>
+                    <input type="text" id="publisher" placeholder="Publisher" required>
+                    <input type="number" id="year" placeholder="Publication Year">
+                    <input type="number" step="0.01" id="price" placeholder="Selling Price" required>
+                    <select id="categorySelector">
+                        <option>All Categories</option>
+                        <option value="Science">Science</option>
+                        <option value="Art">Art</option>
+                        <option value="Religion">Religion</option>
+                        <option value="History">History</option>
+                        <option value="Geography">Geography</option>
+                    </select>
+                    <input type="number" id="threshold" placeholder="Minimum Threshold" required>
+                    <button class="btn-add" type="submit" style="grid-column: span 2;">Save Book to Database</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="edit_books" class="section">
+            <h1>Modify Existing Books</h1>
+            <div class="search-container">
+                <input type="text" id="editSearchIsbn" placeholder="Enter ISBN">
+                <button class="btn-add" style="width: auto;" onclick="searchBookToEdit()">Find Book</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>ISBN</th>
+                        <th>Title</th>
+                        <th>Current Stock</th>
+                        <th>Threshold</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>978-0743273565</td> <td><input type="text" value="The Great Gatsby" class="title-input"></td>
+                        <td><input type="number" value="15" class="stock-input" style="width: 60px;"></td>
+                        <td><input type="number" value="9.99" class="price-input" style="width: 60px;"></td>
+                        <td><button class="btn-add" onclick="updateBook('978-0743273565')">Save Changes</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="place_orders" class="section">
+            <h1>Place Orders with Publishers</h1>
+            <p>Books below threshold that need restocking</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ISBN</th>
+                        <th>Book Title</th>
+                        <th>Publisher</th>
+                        <th>Current Stock</th>
+                        <th>Threshold</th>
+                        <th>Order Quantity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="place-orders-table-body">
+                    <tr><td colspan="7">Loading...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="confirm_orders" class="section">
+            <h1>Confirm Orders</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Book Title</th>
+                        <th>Publisher</th>
+                        <th>Qty Ordered</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>SUP-101</td>
+                        <td>Brief History of Time</td>
+                        <td>Oxford Press</td>
+                        <td>50</td>
+                        <td><span style="color:orange;">Pending</span></td>
+                        <td><button class="btn-add" style="background:#27ae60;" onclick="confirmRestock('SUP-101')">Confirm Receipt</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="system_reports" class="section">
+            <h1>System Reports</h1>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                
+                <div class="book-card" style="text-align: left;">
+                    <h3>Monthly Performance</h3>
+                    <p>Sales last month: <strong id="prevMonthSales">$0.00</strong></p>
+                    <button class="btn-add" onclick="loadPreviousMonthSales()">Refresh Monthly Data</button>
+                </div>
+
+                <div class="book-card" style="text-align: left;">
+                    <h3>Daily Sales Search</h3>
+                    <label>Total: <strong id="salesAmountDisplay">$0.00</strong></label><br><br>
+                    <input type="date" id="reportDate">
+                    <button class="btn-add" onclick="getSalesByDate()" style="margin-top: 10px;">Get Sales for Date</button>
+                </div>
+
+                <div class="book-card" style="text-align: left;">
+                    <h3>Top 5 Customers (Last 3 Months)</h3>
+                    <ol id="topCustomersList">
+                        <li>Loading...</li>
+                    </ol>
+                </div>
+
+                <div class="book-card" style="text-align: left;">
+                    <h3>Replenishment History</h3>
+                    <input type="text" id="replenishIsbn" placeholder="Enter ISBN...">
+                    <button class="btn-add" onclick="getReplenishmentReport()" style="margin-top: 10px;">Check History</button>
+                    <p id="replenishResult" style="font-size: 0.9rem; margin-top: 10px;"></p>
+                </div>
+
+                <div class="book-card" style="text-align: left; grid-column: span 2;">
+                    <h3>Top 10 Selling Books</h3>
+                    <table>
+                        <thead>
+                            <tr><th>Rank</th><th>Book Title</th><th>ISBN</th><th>Copies Sold</th></tr>
+                        </thead>
+                        <tbody id="topBooksTableBody">
+                            <tr><td colspan="4">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="reports.js"></script>
+    <script src="dashboard.js"></script>
+    <script src="admin_orders.js"></script>
+    <script src="book_manipulation.js"></script>
+    <script src="system_reports.js"></script>
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            document.querySelectorAll('.section').forEach(section => {
+                section.classList.remove('active');
+            });
+            // Show the selected one
+            document.getElementById(sectionId).classList.add('active');
+            
+            // Update sidebar highlighting
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('nav-' + sectionId).classList.add('active');
+            if (sectionId === 'system_reports') {
+                loadTopCustomers(); // refresh kol mara
+                loadTopBooks();
+            }
+        }
+    </script>
+
+</body>
+</html>
