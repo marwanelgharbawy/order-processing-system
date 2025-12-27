@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Cart | Book Store</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #333;
+            --success: #27ae60;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); }
+
+        /* Sidebar */
+        aside { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; padding: 20px; }
+        aside h2 { font-size: 1.5rem; margin-bottom: 30px; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        aside nav a { display: block; color: #bdc3c7; text-decoration: none; padding: 12px; margin: 5px 0; border-radius: 5px; cursor: pointer; transition: 0.3s; }
+        aside nav a:hover, aside nav a.active { background: var(--secondary); color: white; }
+        .cart-link { background: var(--secondary); color: white !important; font-weight: bold; } /* Active state for Cart */
+        .logout { margin-top: auto; color: #ff7675; cursor: pointer; padding: 12px; }
+
+        /* Main Content */
+        main { flex-grow: 1; padding: 30px; overflow-y: auto; }
+
+        /* --- CART SPECIFIC STYLES --- */
+        h1 { color: var(--primary); margin-bottom: 20px; }
+
+        .cart-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden; }
+
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #ecf0f1; color: var(--primary); font-weight: 600; }
+        
+        /* Input for Quantity */
+        .qty-input { width: 50px; padding: 5px; text-align: center; border: 1px solid #ddd; border-radius: 4px; }
+        
+        /* Remove Button */
+        .btn-remove { color: var(--accent); background: none; border: none; cursor: pointer; font-size: 1.1rem; transition: 0.2s; }
+        .btn-remove:hover { color: #c0392b; transform: scale(1.1); }
+
+        /* Summary Section */
+        .cart-summary { display: flex; justify-content: flex-end; padding: 20px; background: #fff; gap: 40px; align-items: center; border-top: 2px solid #eee; }
+        .total-label { font-size: 1.2rem; color: #666; }
+        .total-amount { font-size: 1.5rem; font-weight: bold; color: var(--primary); }
+
+        .btn-checkout { background: var(--success); color: white; padding: 12px 30px; border: none; border-radius: 5px; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .btn-checkout:hover { background: #219150; }
+
+        /* Checkout Form (Hidden by default) */
+        .checkout-form { display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); animation: slideDown 0.3s ease-out; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--primary); font-weight: 500; }
+        .form-group input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+        
+        .form-row { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; }
+
+        .btn-pay { background: var(--secondary); width: 100%; color: white; padding: 12px; border: none; border-radius: 5px; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        .btn-pay:hover { background: #2980b9; }
+
+        .empty-cart-msg { text-align: center; padding: 50px; color: #999; display: none; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h2>BookStore</h2>
+        <nav>
+            <a href="dashboard.html">📚 Browse Books</a>
+            <a href="dashboard.html">📦 Past Orders</a>
+            <a href="dashboard.html">👤 Profile</a>
+        </nav>
+        
+        <div class="logout"><a href="#" class="cart-link">🛒 My Cart (<span id="cart-count">2</span>)</a></div>
+        <div class="logout">✖ Logout</div>
+    </aside>
+
+    <main>
+        <h1>Your Shopping Cart</h1>
+
+        <div class="cart-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 40%">Book Details</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Subtotal</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="cart-items">
+                    </tbody>
+            </table>
+            
+            <div id="empty-cart" class="empty-cart-msg">
+                <i class="fas fa-shopping-basket" style="font-size: 3rem; margin-bottom: 10px;"></i>
+                <p>Your cart is currently empty.</p>
+                <a href="dashboard.html" style="color: var(--secondary); text-decoration: none;">Go back to shop</a>
+            </div>
+
+            <div class="cart-summary" id="cart-summary">
+                <div>
+                    <span class="total-label">Total Amount:</span>
+                    <span class="total-amount" id="grand-total">$0.00</span>
+                </div>
+                <button class="btn-checkout" onclick="toggleCheckout()">
+                    Check Out <i class="fas fa-arrow-right"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="checkout-form" id="checkout-section">
+            <h2 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">Secure Checkout</h2>
+            <form onsubmit="processPayment(event)">
+                <div class="form-group">
+                    <label>Cardholder Name</label>
+                    <input type="text" placeholder="John Doe" required>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Credit Card Number</label>
+                        <input type="text" placeholder="xxxx-xxxx-xxxx-xxxx" maxlength="19" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Expiry Date</label>
+                        <input type="month" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-pay">Confirm Payment</button>
+            </form>
+        </div>
+
+    </main>
+
+    <script>
+        // --- 1. MOCK DATA (Simulates what you'd get from your Database) ---
+        let cartData = [
+            { id: 101, title: "The Great Gatsby", author: "F. Scott Fitzgerald", price: 15.99, qty: 1, isbn: "978-0743273565" },
+            { id: 102, title: "Sapiens: A Brief History", author: "Yuval Noah Harari", price: 22.50, qty: 1, isbn: "978-0062316097" }
+        ];
+
+        // --- 2. RENDER FUNCTIONS ---
+        const cartTableBody = document.getElementById('cart-items');
+        const grandTotalEl = document.getElementById('grand-total');
+        const cartCountEl = document.getElementById('cart-count');
+        const emptyMsg = document.getElementById('empty-cart');
+        const summarySection = document.getElementById('cart-summary');
+
+        function renderCart() {
+            cartTableBody.innerHTML = '';
+            let total = 0;
+            let totalItems = 0;
+
+            if (cartData.length === 0) {
+                emptyMsg.style.display = 'block';
+                cartTableBody.style.display = 'none';
+                summarySection.style.display = 'none';
+                cartCountEl.innerText = 0;
+                return;
+            } else {
+                emptyMsg.style.display = 'none';
+                cartTableBody.style.display = 'table-row-group';
+                summarySection.style.display = 'flex';
+            }
+
+            cartData.forEach((item, index) => {
+                let subtotal = item.price * item.qty;
+                total += subtotal;
+                totalItems += parseInt(item.qty);
+
+                let row = `
+                    <tr>
+                        <td>
+                            <strong>${item.title}</strong><br>
+                            <small style="color: #777;">ISBN: ${item.isbn}</small>
+                        </td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td>
+                            <input type="number" class="qty-input" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)">
+                        </td>
+                        <td style="font-weight: bold; color: var(--primary);">$${subtotal.toFixed(2)}</td>
+                        <td>
+                            <button class="btn-remove" onclick="removeItem(${index})">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                cartTableBody.innerHTML += row;
+            });
+
+            grandTotalEl.innerText = '$' + total.toFixed(2);
+            cartCountEl.innerText = totalItems;
+        }
+
+        // --- 3. LOGIC HANDLERS ---
+        
+        function updateQty(index, newQty) {
+            if (newQty < 1) return;
+            cartData[index].qty = parseInt(newQty);
+            renderCart();
+        }
+
+        function removeItem(index) {
+            if(confirm('Are you sure you want to remove this item?')) {
+                cartData.splice(index, 1);
+                renderCart();
+                // Hide checkout if cart becomes empty
+                if(cartData.length === 0) {
+                    document.getElementById('checkout-section').style.display = 'none';
+                }
+            }
+        }
+
+        function toggleCheckout() {
+            const form = document.getElementById('checkout-section');
+            form.style.display = 'block';
+            // Smooth scroll to form
+            form.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function processPayment(event) {
+            event.preventDefault();
+            
+            // SIMULATING BACKEND INTERACTION
+            // 1. Validate CC (Frontend validation)
+            // 2. Call SQL to decrement stock
+            // 3. Create Order Record
+            // 4. Clear Cart
+            
+            alert("Payment Successful! \nStock updated and Order #ORD-9921 created.");
+            
+            // Clear simulated cart
+            cartData = [];
+            renderCart();
+            document.getElementById('checkout-section').style.display = 'none';
+        }
+
+        // Initialize Page
+        renderCart();
+    </script>
+</body>
+</html>
