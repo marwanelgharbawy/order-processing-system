@@ -107,12 +107,14 @@ app.post('/login', async (req, res) => {
 
 // Add book (Admin)
 app.post('/books', async (req, res) => {
-    const { isbn, title, category, price, stockQuantity } = req.body;
+    const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity } = req.body;
+
+    console.log("Adding new book:", isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity);
 
     try {
         await db.query(
-            'INSERT INTO BOOK (ISBN, Title, Category, Price, StockQuantity) VALUES (?, ?, ?, ?, ?)',
-            [isbn, title, category, price, stockQuantity]
+            'INSERT INTO BOOK (ISBN, Title, Category, PublicationYear, SellingPrice, Threshold, PublisherName, StockQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity]
         );
         console.log(`Book added successfully: ${isbn}`);
         res.status(201).json({ message: "Book added successfully" });
@@ -125,13 +127,13 @@ app.post('/books', async (req, res) => {
 // Modify book details (Admin)
 app.put('/books/:isbn', async (req, res) => {
     const { isbn } = req.params;
-    const { title, category, price, stockQuantity } = req.body;
+    const { title, category, sellingPrice, stockQuantity} = req.body;
 
     try {
         // execute the update
         const [result] = await db.query(
-            'UPDATE BOOK SET Title = ?, Category = ?, Price = ?, StockQuantity = ? WHERE ISBN = ?',
-            [title, category, price, stockQuantity, isbn]
+            'UPDATE BOOK SET Title = ?, Category = ?, SellingPrice = ?, StockQuantity = ? WHERE ISBN = ?',
+            [title, category, sellingPrice, stockQuantity, isbn]
         );
 
         // If no rows were affected, the ISBN doesn't exist
