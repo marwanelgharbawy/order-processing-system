@@ -57,6 +57,32 @@ app.get('/books/category/:categoryName', async (req, res) => {
     }
 });
 
+// User registration
+// POST request to /register with JSON body
+// Get data from req.body
+app.post('/register', async (req, res) => {
+    const { username, password, firstName, lastName, email, phone, address } = req.body;
+
+    try {
+        await db.query(
+            `INSERT INTO CUSTOMER (Username, Password, FirstName, LastName, Email, Phone, ShippingAddress) 
+             VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [username, password, firstName, lastName, email, phone, address]
+        );
+        res.status(201).json({ message: "User registered successfully" });
+        console.log("New user registered:", username);
+    } catch (err) {
+        // Check for duplicate entry error
+        if (err.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ error: "Username or Email already exists" });
+            console.log("Registration failed. Duplicate entry:", username);
+        } else {
+            console.error(err);
+            res.status(500).json({ error: "Registration failed" });
+        }
+    }
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
