@@ -289,6 +289,61 @@ app.post('/checkout', async (req, res) => {
     }
 });
 
+// Confirm Admin Restock Order (Transaction)
+app.post('/admin/orders/confirm/:restockId', async (req, res) => {
+    const { restockId } = req.params;
+
+    const connection = await db.getConnection();
+
+    try {
+        await connection.beginTransaction();
+
+        // Lock row
+        const [orders] = await connection.query(
+            'SELECT * FROM ADMIN_ORDER WHERE RestockID = ? FOR UPDATE',
+            [restockId]
+        );
+
+        if (orders.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: "Order not found" });
+        }
+
+        const order = orders[0];
+
+        // If it was already confirmed, return
+        if (order.Status === 'Confirmed') {
+            await connection.rollback();
+            return res.status(400).json({ error: "Order is already confirmed" });
+        }
+
+        // Change order status to Confirmed
+        await connection.query(
+            'UPDATE ADMIN_ORDER SET Status = ? WHERE RestockID = ?',
+            ['Confirmed', restockId]
+        );
+
+        // Add restock quantity
+        await connection.query(
+            'UPDATE BOOK SET StockQuantity = StockQuantity + ? WHERE ISBN = ?',
+            [order.Quantity, order.ISBN]
+        );
+
+        // Commit the transaction
+        await connection.commit();
+        console.log(`Restock order ${restockId} confirmed. Added ${order.Quantity} copies to ISBN ${order.ISBN}.`);
+        res.json({ message: "Order confirmed and stock updated successfully" });
+
+    } catch (err) {
+        // If anything fails, rollback
+        await connection.rollback();
+        console.error("Order confirmation failed:", err);
+        res.status(500).json({ error: "Failed to confirm order" });
+    } finally {
+        connection.release();
+    }
+});
+
 // System Reports (Admin Only)
 // Few SQL queries
 
