@@ -1,38 +1,30 @@
 async function loadAdminOrders() {
     const tableBody = document.getElementById('admin-orders-table-body');
-    
-    try {
-        const response = await fetch('/admin/orders'); 
-        if (!response.ok) throw new Error("Failed to fetch orders");
+    if (!tableBody) return;
 
+    try {
+        const response = await fetch('/admin/orders');
         const orders = await response.json();
         
-        // reset el table
-        tableBody.innerHTML = '';
-
-        if (orders.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4">No orders found.</td></tr>';
-            return;
-        }
+        tableBody.innerHTML = ''; 
 
         orders.forEach(order => {
             const row = document.createElement('tr');
-            
             row.innerHTML = `
-                <td>#${order.OrderNo || 'N/A'}</td>
+                <td>#${order.RestockID}</td>
+                <td>${order.ISBN}</td>
                 <td>${new Date(order.OrderDate).toLocaleDateString()}</td>
-                <td>$${order.TotalAmount || '0.00'}</td>
-                <td><button onclick="viewOrderDetails(${order.OrderNo})">View Details</button></td>
+                <td>${order.Quantity}</td>
+                <td><span style="color: ${order.Status === 'Pending' ? 'orange' : 'green'}">${order.Status}</span></td>
+                <td>
+                    ${order.Status === 'Pending' ? 
+                    `<button class="btn-add" style="background:#27ae60; width:auto; padding:5px 10px;">Confirm</button>` : 
+                    `✅`}
+                </td>
             `;
             tableBody.appendChild(row);
         });
-
     } catch (err) {
-        console.error("Error:", err);
-        tableBody.innerHTML = `<tr><td colspan="4" style="color:red;">Error loading orders.</td></tr>`;
+        tableBody.innerHTML = '<tr><td colspan="6">Error loading admin orders.</td></tr>';
     }
-}
-
-function viewOrderDetails(id) {
-    alert("Viewing details for Order #" + id);
 }

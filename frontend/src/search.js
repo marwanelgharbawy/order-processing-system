@@ -1,47 +1,41 @@
-document.addEventListener('DOMContentLoaded', () => {
-    loadBooks();
-});
 
-async function loadBooks() {
+async function loadBooks(query = '', type = 'all') {
     const container = document.getElementById('book-container');
-    
+    let url = '/books';
+
+    if (type === 'isbn' && query) url = `/books/${query}`;
+    else if (type === 'category' && query && query !== 'All Categories') {
+        url = `/books/category/${encodeURIComponent(query)}`;
+    }
+
     try {
-        // endpoint app.get('/books')
-        const response = await fetch('/books'); 
+        const response = await fetch(url);
+        const data = await response.json();
+        const books = Array.isArray(data) ? data : [data];
         
-        if (!response.ok) throw new Error("Failed to fetch");
+        container.innerHTML = '';
+        
+        if (!books[0]) {
+            container.innerHTML = '<p>No books found.</p>';
+            return;
+        }
 
-        const books = await response.json();
-        renderBooks(books);
+        books.forEach(book => {
+            const card = document.createElement('div');
+            card.className = 'book-card';
+            card.innerHTML = `
+                <div style="height:120px; background:#eee; border-radius:4px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#999;">
+                    ISBN: ${book.ISBN}
+                </div>
+                <h3>${book.Title}</h3>
+                <p>Publisher: ${book.PublisherName || 'Unknown'}</p>
+                <p><small>Stock: ${book.StockQuantity}</small></p>
+                <div class="price">$${parseFloat(book.SellingPrice).toFixed(2)}</div>
+                <button class="btn-add" onclick="addToCart('${book.ISBN}')">Add to Cart</button>
+            `;
+            container.appendChild(card);
+        });
     } catch (err) {
-        console.error("Error:", err);
-        container.innerHTML = `<p style="color:red;">Unable to load books. Please check backend.</p>`;
+        container.innerHTML = '<p>Error connecting to server.</p>';
     }
-}
-
-function renderBooks(books) {
-    const container = document.getElementById('book-container');
-    container.innerHTML = ''; // Clear the grid
-
-    if (books.length === 0) {
-        container.innerHTML = '<p>No books found in the database.</p>';
-        return;
-    }
-
-    books.forEach(book => {
-        const card = document.createElement('div');
-        card.className = 'book-card';
-        card.innerHTML = `
-            <div style="height:150px; background:#ddd; border-radius:4px; margin-bottom:10px;"></div>
-            <h3>${book.Title || 'Untitled'}</h3>
-            <p>Author: ${book.PublisherName || 'N/A'}</p>
-            <div class="price">$${book.SellingPrice || '0.00'}</div>
-            <button class="btn-add" onclick="addToCart('${book.ISBN}')">Add to Cart</button>
-        `;
-        container.appendChild(card);
-    });
-}
-
-function addToCart(isbn) {
-    alert("Added book ISBN: " + isbn + " to cart!");
 }
