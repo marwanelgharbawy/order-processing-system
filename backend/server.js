@@ -193,34 +193,35 @@ app.put('/customer/:username', async (req, res) => {
 
 // Add book (Admin)
 app.post('/books', async (req, res) => {
-    const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity , authors } = req.body;
+    const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity, authors } = req.body;
 
-    console.log("Adding new book:", isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity);
-    console.log("Authors:", authors);
+    console.log("Adding new book:", title);
+
+    const connection = await db.getConnection();
 
     try {
         await connection.beginTransaction();
 
-        await db.query(
+        await connection.query(
             'INSERT INTO BOOK (ISBN, Title, Category, PublicationYear, SellingPrice, Threshold, PublisherName, StockQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity]
         );
 
-        // Inserting authors into BOOK_AUTHORS table
+        // Inserting authors
         if (authors && Array.isArray(authors) && authors.length > 0) {
             for (const author of authors) {
-                console.log(`Inserting author: ${author} for book ISBN: ${isbn}`);
-                await db.query( 
-                    'INSERT INTO BOOK_AUTHORS (ISBN, AuthorName) VALUE  S (?, ?)',
+                console.log(`Inserting author: ${author}`);
+                await connection.query( 
+                    'INSERT INTO BOOK_AUTHORS (ISBN, AuthorName) VALUES (?, ?)',
                     [isbn, author]
                 );
             }
         }
 
         await connection.commit();
-
         console.log(`Book added successfully: ${isbn}`);
         res.status(201).json({ message: "Book added successfully" });
+
     } catch (err) {
         await connection.rollback();
         if (err.code === 'ER_DUP_ENTRY') {
