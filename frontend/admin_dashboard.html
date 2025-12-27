@@ -3,51 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="admin.css">
     <title>Admin Dashboard</title>
-    <style>
-        :root {
-            --primary: #2c3e50;
-            --secondary: #3498db;
-            --accent: #e74c3c;
-            --bg: #f4f7f6;
-            --text: #333;
-        }
-
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); }
-
-        /* Sidebar Navigation */
-        aside { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; padding: 20px; }
-        aside h2 { font-size: 1.5rem; margin-bottom: 30px; border-bottom: 1px solid #555; padding-bottom: 10px; }
-        aside nav a { display: block; color: #bdc3c7; text-decoration: none; padding: 12px; margin: 5px 0; border-radius: 5px; cursor: pointer; transition: 0.3s; }        aside nav a:hover, aside nav a.active { background: var(--secondary); color: white; }
-        .logout { margin-top: auto; color: #ff7675; cursor: pointer; padding: 12px; }
-        
-        /* Main Content */
-        main { flex-grow: 1; padding: 30px; overflow-y: auto; }
-        .section { display: none; }
-        .section.active { display: block; }
-
-        /* Search Bar */
-        .search-container { display: flex; gap: 10px; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .search-container input, .search-container select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex: 1; }
-
-        /* Book Grid */
-        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-        .book-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
-        .book-card h3 { margin: 10px 0 5px; font-size: 1.1rem; }
-        .book-card p { color: #666; font-size: 0.9rem; }
-        .price { font-weight: bold; color: var(--secondary); margin: 10px 0; }
-        .btn-add { background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; width: 100%; }
-
-        /* Cart & Table Styles */
-        table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #ecf0f1; }
-        .total-row { font-size: 1.2rem; font-weight: bold; text-align: right; }
-        .btn-checkout { background: #27ae60; color: white; padding: 15px 30px; border: none; border-radius: 5px; float: right; margin-top: 20px; cursor: pointer; }
-    </style>
 </head>
 <body>
-
     <aside>
         <h2>BookStore</h2>
         <nav>
@@ -79,6 +38,7 @@
             <div class="book-grid" id ="book-container">
             </div>
         </section>
+
        <section id="orders" class="section">
             <h1>Order History</h1>
             <table>
@@ -94,6 +54,7 @@
                     </tbody>
             </table>
         </section>
+
         <section id="add_books" class="section">
             <h1>Add New Book</h1>
             <div class="search-container" style="display: block;">
@@ -148,8 +109,7 @@
         </section>
 
         <section id="place_orders" class="section">
-            <h1>Supply Orders (from Publishers)</h1>
-            <p>Confirm receiving quantities to update stock automatically.</p>
+            <h1>Supply Orders</h1>
             <table>
                 <thead>
                     <tr>
@@ -168,46 +128,63 @@
                         <td>Oxford Press</td>
                         <td>50</td>
                         <td><span style="color:orange;">Pending</span></td>
-                        <td><button class="btn-add" style="background:#27ae60;">Confirm Receipt</button></td>
+                        <td><button class="btn-add" style="background:#27ae60;" onclick="confirmRestock('SUP-101')">Confirm Receipt</button></td>
                     </tr>
                 </tbody>
             </table>
         </section>
+
         <section id="system_reports" class="section">
             <h1>System Reports</h1>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                
                 <div class="book-card" style="text-align: left;">
-                    <h3>Sales Reports</h3>
-                    <label>Sales for selected date: <strong id="salesAmountDisplay">$0.00</strong></label><br><br>
+                    <h3>Monthly Performance</h3>
+                    <p>Sales last month: <strong id="prevMonthSales">$0.00</strong></p>
+                    <button class="btn-add" onclick="loadPreviousMonthSales()">Refresh Monthly Data</button>
+                </div>
+
+                <div class="book-card" style="text-align: left;">
+                    <h3>Daily Sales Search</h3>
+                    <label>Total: <strong id="salesAmountDisplay">$0.00</strong></label><br><br>
                     <input type="date" id="reportDate">
                     <button class="btn-add" onclick="getSalesByDate()" style="margin-top: 10px;">Get Sales for Date</button>
                 </div>
 
                 <div class="book-card" style="text-align: left;">
-                    <h3>Top 5 Customers</h3>
+                    <h3>Top 5 Customers (Last 3 Months)</h3>
                     <ol id="topCustomersList">
                         <li>Loading...</li>
                     </ol>
                 </div>
 
+                <div class="book-card" style="text-align: left;">
+                    <h3>Replenishment History</h3>
+                    <input type="text" id="replenishIsbn" placeholder="Enter ISBN...">
+                    <button class="btn-add" onclick="getReplenishmentReport()" style="margin-top: 10px;">Check History</button>
+                    <p id="replenishResult" style="font-size: 0.9rem; margin-top: 10px;"></p>
+                </div>
+
                 <div class="book-card" style="text-align: left; grid-column: span 2;">
                     <h3>Top 10 Selling Books</h3>
-                    <table style="font-size: 0.9rem;">
+                    <table>
                         <thead>
-                            <tr><th>Rank</th><th>Book Title</th><th>Copies Sold</th></tr>
+                            <tr><th>Rank</th><th>Book Title</th><th>ISBN</th><th>Copies Sold</th></tr>
                         </thead>
                         <tbody id="topBooksTableBody">
-                            <tr><td colspan="3">Loading...</td></tr>
+                            <tr><td colspan="4">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </section>
     </main>
+
     <script src="reports.js"></script>
     <script src="dashboard.js"></script>
     <script src="admin_orders.js"></script>
     <script src="book_manipulation.js"></script>
+    <script src="system_reports.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections
