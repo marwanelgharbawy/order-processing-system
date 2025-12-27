@@ -39,3 +39,51 @@ async function loadBooks(query = '', type = 'all') {
         container.innerHTML = '<p>Error connecting to server.</p>';
     }
 }
+
+//helper function
+function handleShopSearch() {
+    const isbn = document.getElementById('shopSearchInput').value.trim();
+    const category = document.getElementById('shopCategorySelect').value;
+
+    if (isbn) {
+        // Search by ISBN
+        loadBooks(isbn, 'isbn');
+    } else if (category !== 'All Categories') {
+        // Search by Category
+        loadBooks(category, 'category');
+    } else {
+        // Show everything
+        loadBooks();
+    }
+}
+
+
+
+async function searchBookToEdit() {
+    const isbn = document.getElementById('editSearchIsbn').value.trim();
+    if (!isbn) return alert("Please enter an ISBN");
+
+    try {
+        const response = await fetch(`/books/${isbn}`);
+        const book = await response.json();
+
+        if (response.status === 404) {
+            alert("Book not found!");
+            return;
+        }
+
+        // Target the table body in the edit_books section
+        const tbody = document.querySelector('#edit_books table tbody');
+        tbody.innerHTML = `
+            <tr>
+                <td>${book.ISBN}</td>
+                <td><input type="text" value="${book.Title}" class="title-input"></td>
+                <td><input type="number" value="${book.StockQuantity}" class="stock-input" style="width: 60px;"></td>
+                <td><input type="number" value="${book.MinThreshold}" class="threshold-input" style="width: 60px;"></td>
+                <td><button class="btn-add" onclick="updateBook('${book.ISBN}')">Save Changes</button></td>
+            </tr>
+        `;
+    } catch (err) {
+        alert("Error finding book");
+    }
+}

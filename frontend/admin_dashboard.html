@@ -15,6 +15,7 @@
             <a onclick="showSection('edit_books')" id="nav-edit_books">✏️ Edit Books</a>
             <a onclick="showSection('orders')" id="nav-orders">📦 Admin Orders</a>
             <a onclick="showSection('place_orders')" id="nav-place_orders">🚚 Place Orders</a>
+            <a onclick="showSection('confirm_orders')" id="nav-confirm_orders">✅ Confirm Orders</a>
             <a onclick="showSection('system_reports')" id="nav-system_reports">📊 System Reports</a>
         </nav>
         <div class="logout">✖ Logout</div>
@@ -25,14 +26,14 @@
         <section id="shop" class="section active">
             <h1>Search for Books</h1>
             <div class="search-container">
-                <input type="text" placeholder="Search by Title, ISBN, or Author...">
-                <select>
-                    <option>All Categories</option>
-                    <option>Science</option>
-                    <option>Art</option>
-                    <option>History</option>
+                <input type="text" id="shopSearchInput" placeholder="Search by ISBN...">
+                <select id="shopCategorySelect">
+                    <option value="All Categories">All Categories</option>
+                    <option value="Science">Science</option>
+                    <option value="Art">Art</option>
+                    <option value="History">History</option>
                 </select>
-                <button class="btn-add" style="width: auto;">Search</button>
+                <button class="btn-add" style="width: auto;" onclick="handleShopSearch()">Search</button>
             </div>
             
             <div class="book-grid" id ="book-container">
@@ -58,13 +59,13 @@
         <section id="add_books" class="section">
             <h1>Add New Book</h1>
             <div class="search-container" style="display: block;">
-                <form style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <input type="text" placeholder="ISBN" required>
-                    <input type="text" placeholder="Book Title" required>
-                    <input type="text" placeholder="Author(s)" required>
-                    <input type="text" placeholder="Publisher" required>
-                    <input type="number" placeholder="Publication Year">
-                    <input type="number" step="0.01" placeholder="Selling Price" required>
+                <form id="addBookForm" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <input type="text" id="isbn" placeholder="ISBN" required>
+                    <input type="text" id="title" placeholder="Book Title" required>
+                    <input type="text" id="authors" placeholder="Author(s) - separate with commas" required>
+                    <input type="text" id="publisher" placeholder="Publisher" required>
+                    <input type="number" id="year" placeholder="Publication Year">
+                    <input type="number" step="0.01" id="price" placeholder="Selling Price" required>
                     <select id="categorySelector">
                         <option>All Categories</option>
                         <option value="Science">Science</option>
@@ -73,7 +74,7 @@
                         <option value="History">History</option>
                         <option value="Geography">Geography</option>
                     </select>
-                    <input type="number" placeholder="Minimum Threshold" required>
+                    <input type="number" id="threshold" placeholder="Minimum Threshold" required>
                     <button class="btn-add" type="submit" style="grid-column: span 2;">Save Book to Database</button>
                 </form>
             </div>
@@ -82,8 +83,8 @@
         <section id="edit_books" class="section">
             <h1>Modify Existing Books</h1>
             <div class="search-container">
-                <input type="text" placeholder="Enter ISBN to search and edit...">
-                <button class="btn-add" style="width: auto;">Find Book</button>
+                <input type="text" id="editSearchIsbn" placeholder="Enter ISBN">
+                <button class="btn-add" style="width: auto;" onclick="searchBookToEdit()">Find Book</button>
             </div>
             
             <table>
@@ -98,18 +99,38 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td>978-0743273565</td>
-                        <td>The Great Gatsby</td>
-                        <td><input type="number" value="15" style="width: 50px;"></td>
-                        <td>5</td>
-                        <td><button class="btn-add" style="background:#27ae60;">Update</button></td>
+                        <td>978-0743273565</td> <td><input type="text" value="The Great Gatsby" class="title-input"></td>
+                        <td><input type="number" value="15" class="stock-input" style="width: 60px;"></td>
+                        <td><input type="number" value="9.99" class="price-input" style="width: 60px;"></td>
+                        <td><button class="btn-add" onclick="updateBook('978-0743273565')">Save Changes</button></td>
                     </tr>
                 </tbody>
             </table>
         </section>
 
         <section id="place_orders" class="section">
-            <h1>Supply Orders</h1>
+            <h1>Place Orders with Publishers</h1>
+            <p>Books below threshold that need restocking</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ISBN</th>
+                        <th>Book Title</th>
+                        <th>Publisher</th>
+                        <th>Current Stock</th>
+                        <th>Threshold</th>
+                        <th>Order Quantity</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="place-orders-table-body">
+                    <tr><td colspan="7">Loading...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section id="confirm_orders" class="section">
+            <h1>Confirm Orders</h1>
             <table>
                 <thead>
                     <tr>
