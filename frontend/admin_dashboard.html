@@ -104,13 +104,13 @@
                     <input type="text" placeholder="Publisher" required>
                     <input type="number" placeholder="Publication Year">
                     <input type="number" step="0.01" placeholder="Selling Price" required>
-                    <select required>
-                        <option value="" disabled selected>Select Category</option>
-                        <option>Science</option>
-                        <option>Art</option>
-                        <option>Religion</option>
-                        <option>History</option>
-                        <option>Geography</option>
+                    <select id="categorySelector">
+                        <option>All Categories</option>
+                        <option value="Science">Science</option>
+                        <option value="Art">Art</option>
+                        <option value="Religion">Religion</option>
+                        <option value="History">History</option>
+                        <option value="Geography">Geography</option>
                     </select>
                     <input type="number" placeholder="Minimum Threshold" required>
                     <button class="btn-add" type="submit" style="grid-column: span 2;">Save Book to Database</button>
@@ -207,6 +207,7 @@
     <script src="reports.js"></script>
     <script src="dashboard.js"></script>
     <script src="admin_orders.js"></script>
+    <script src="book_manipulation.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -221,6 +222,10 @@
                 link.classList.remove('active');
             });
             document.getElementById('nav-' + sectionId).classList.add('active');
+            if (sectionId === 'system_reports') {
+                loadTopCustomers(); // refresh kol mara
+                loadTopBooks();
+            }
         }
     </script>
 
