@@ -193,20 +193,44 @@ app.put('/customer/:username', async (req, res) => {
 
 // Add book (Admin)
 app.post('/books', async (req, res) => {
-    const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity } = req.body;
+    const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity , authors } = req.body;
 
     console.log("Adding new book:", isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity);
+    console.log("Authors:", authors);
 
     try {
+        await connection.beginTransaction();
+
         await db.query(
             'INSERT INTO BOOK (ISBN, Title, Category, PublicationYear, SellingPrice, Threshold, PublisherName, StockQuantity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
             [isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity]
         );
+
+        // Inserting authors into BOOK_AUTHORS table
+        if (authors && Array.isArray(authors) && authors.length > 0) {
+            for (const author of authors) {
+                console.log(`Inserting author: ${author} for book ISBN: ${isbn}`);
+                await db.query( 
+                    'INSERT INTO BOOK_AUTHORS (ISBN, AuthorName) VALUE  S (?, ?)',
+                    [isbn, author]
+                );
+            }
+        }
+
+        await connection.commit();
+
         console.log(`Book added successfully: ${isbn}`);
         res.status(201).json({ message: "Book added successfully" });
     } catch (err) {
-        console.error("Insertion failed:", err);
-        res.status(500).json({ error: "Failed to add book" });
+        await connection.rollback();
+        if (err.code === 'ER_DUP_ENTRY') {
+            res.status(400).json({ error: "Book with this ISBN already exists" });
+        } else {
+            console.error("Add book failed:", err);
+            res.status(500).json({ error: "Failed to add book" });
+        }
+    } finally {
+        connection.release();
     }
 });
 
@@ -251,6 +275,8 @@ app.get('/admin/orders', async (req, res) => {
         res.status(500).json({ error: "Failed to fetch admin orders" });
     }
 });
+
+// Admin orders accept
 
 // Customer Orders
 // Checking out requires a series of operations that must all succeed
@@ -355,8 +381,7 @@ app.get('/orders/history/:username', async (req, res) => {
     }
 });
 
-
-
+// why not PUT?
 // Confirm Admin Restock Order (Transaction)
 app.post('/admin/orders/confirm/:restockId', async (req, res) => {
     const { restockId } = req.params;
