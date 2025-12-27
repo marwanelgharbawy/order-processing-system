@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard | Book Store</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #e74c3c;
+            --bg: #f4f7f6;
+            --text: #333;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background: var(--bg); }
+
+        /* Sidebar Navigation */
+        aside { width: 250px; background: var(--primary); color: white; display: flex; flex-direction: column; padding: 20px; }
+        aside h2 { font-size: 1.5rem; margin-bottom: 30px; border-bottom: 1px solid #555; padding-bottom: 10px; }
+        aside nav a { display: block; color: #bdc3c7; text-decoration: none; padding: 12px; margin: 5px 0; border-radius: 5px; cursor: pointer; transition: 0.3s; }        aside nav a:hover, aside nav a.active { background: var(--secondary); color: white; }
+        .logout { margin-top: auto; color: #ff7675; cursor: pointer; padding: 12px; }
+        .cart-link {
+            text-decoration: none; /* Removes the underline */
+            color: white;          /* Matches your sidebar text color */
+            display: block;        /* Makes the whole area clickable */
+            padding: 10px;
+            border-radius: 5px;
+            transition: background 0.2s; /* Smooth hover effect */
+        }
+
+        /* Make it look like a button when you hover */
+        .cart-link:hover {
+            background-color: #34495e; /* A slightly lighter shade of the sidebar color */
+            color: #3498db;            /* Change text color to your primary blue */
+        }
+
+        /* Ensure it doesn't turn purple after you click it */
+        .cart-link:visited {
+            color: white;
+        }
+        /* Main Content */
+        main { flex-grow: 1; padding: 30px; overflow-y: auto; }
+        .section { display: none; }
+        .section.active { display: block; }
+
+        /* Search Bar */
+        .search-container { display: flex; gap: 10px; margin-bottom: 30px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .search-container input, .search-container select { padding: 10px; border: 1px solid #ddd; border-radius: 4px; flex: 1; }
+
+        /* Book Grid */
+        .book-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+        .book-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+        .book-card h3 { margin: 10px 0 5px; font-size: 1.1rem; }
+        .book-card p { color: #666; font-size: 0.9rem; }
+        .price { font-weight: bold; color: var(--secondary); margin: 10px 0; }
+        .btn-add { background: var(--secondary); color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; width: 100%; }
+
+        /* Cart & Table Styles */
+        table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background: #ecf0f1; }
+        .total-row { font-size: 1.2rem; font-weight: bold; text-align: right; }
+        .btn-checkout { background: #27ae60; color: white; padding: 15px 30px; border: none; border-radius: 5px; float: right; margin-top: 20px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <h2>BookStore</h2>
+        <nav>
+            <a onclick="showSection('shop')" id="nav-shop" class="active">📚 Browse Books</a>
+            <a onclick="showSection('cart')" id="nav-cart">🛒 My Cart (<span id="cart-count">0</span>)</a>
+            <a onclick="showSection('orders')" id="nav-orders">📦 Past Orders</a>
+            <a onclick="showSection('profile')" id="nav-profile">👤 Profile</a>
+        </nav>
+        <div class="logout" onclick="handleLogout()">✖ Logout</div>
+    </aside>
+
+    <main>
+        
+        <section id="shop" class="section active">
+            <h1>Search for Books</h1>
+            <div class="search-container"> <input type="text" id="searchInput" placeholder="Search by Title, ISBN, or Author...">
+                <select id="categoryFilter">
+                    <option value="">All Categories</option>
+                    <option value="Science">Science</option>
+                    <option value="Art">Art</option>
+                    <option value="History">History</option>
+                </select>
+                <button class="btn-add" style="width: auto;" onclick="searchBooks()">Search</button>
+            </div>
+
+            <div id="book-container" class="book-grid"></div>
+            
+            <div class="book-grid">
+                <div class="book-card">
+                    <div style="height:150px; background:#ddd; border-radius:4px;"></div> <h3>The Great Gatsby</h3>
+                    <p>F. Scott Fitzgerald</p>
+                    <div class="price">$15.99</div>
+                    <button class="btn-add" onclick="addToCart('The Great Gatsby', 15.99, '978-0743273565')">
+                        Add to Cart
+                    </button>
+                </div>
+                </div>
+        </section>
+
+        <section id="cart" class="section">
+            <h1>Your Shopping Cart</h1>
+            <div class="cart-container" style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">Book Details</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items">
+                        </tbody>
+                </table>
+                
+                <div id="empty-cart" style="text-align: center; padding: 50px; color: #999; display: none;">
+                    <p>Your cart is currently empty.</p>
+                </div>
+
+                <div class="cart-summary" id="cart-summary" style="display: flex; justify-content: flex-end; padding: 20px; background: #fff; gap: 40px; align-items: center; border-top: 2px solid #eee;">
+                    <div>
+                        <span style="font-size: 1.2rem; color: #666;">Total Amount:</span>
+                        <span id="grand-total" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">$0.00</span>
+                    </div>
+                    <button class="btn-checkout" onclick="toggleCheckout()" style="background: #27ae60; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer;">
+                        Check Out
+                    </button>
+                </div>
+            </div>
+
+            <div class="checkout-form" id="checkout-section" style="display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h2>Secure Checkout</h2>
+                <form onsubmit="processPayment(event)">
+                    <input type="text" placeholder="Credit Card Number" style="width: 100%; padding: 10px; margin-bottom: 10px;" required>
+                    <input type="month" placeholder="Expiry Date" style="width: 100%; padding: 10px; margin-bottom: 10px;" required>
+                    <button type="submit" style="background: var(--secondary); width: 100%; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Confirm Payment</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="profile" class="section">
+            <h1>My Personal Information</h1>
+            <div class="profile-container" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 800px;">
+                <form id="edit-profile-form" onsubmit="saveProfile(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">First Name</label>
+                            <input type="text" id="fname" value="John" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Last Name</label>
+                            <input type="text" id="lname" value="Doe" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Username</label>
+                            <input type="text" id="username" value="johndoe123" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px; background:#f9f9f9;" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Email Address</label>
+                            <input type="email" id="email" value="john@example.com" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Phone Number</label>
+                            <input type="tel" id="phone" value="0123456789" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">New Password</label>
+                            <input type="password" id="password" placeholder="Leave blank to keep current" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top:20px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:bold;">Shipping Address</label>
+                        <textarea id="address" rows="3" style="width:90%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>123 Bookstore St, Knowledge City, 45678</textarea>
+                    </div>
+
+                    <button type="submit" style="margin-top:20px; background:var(--secondary); color:white; border:none; padding:12px 25px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
+        </section>
+
+        <section id="orders" class="section">
+            <h1>Order History</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Total Amount</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>#ORD-8821</td>
+                        <td>2023-10-15</td>
+                        <td>$45.50</td>
+                        <td><button>View Details</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+    </main>
+
+    <script>
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+<<<<<<< HEAD
+            document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
+            const activeTab = document.getElementById('nav-' + sectionId);
+            if(activeTab) activeTab.classList.add('active');
+=======
+            
+            // Update sidebar highlighting
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('active');
+            });
+            document.getElementById('nav-' + sectionId).classList.add('active');
+            
+        }
+
+        function saveProfile(event) {
+            event.preventDefault();
+            
+            // In a real implementation, you would send this data to your SQL database
+            // using an UPDATE statement for the Customer table.
+            
+            const updatedData = {
+                firstName: document.getElementById('fname').value,
+                lastName: document.getElementById('lname').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value
+            };
+
+            console.log("Saving to database:", updatedData);
+            
+            alert("Profile Updated Successfully!");
+        }
+
+        let cartData = []; // Starts empty
+
+        function renderCart() {
+            const cartTableBody = document.getElementById('cart-items');
+            const grandTotalEl = document.getElementById('grand-total');
+            const cartCountEl = document.getElementById('cart-count');
+            
+            cartTableBody.innerHTML = '';
+            let total = 0;
+            let totalItems = 0;
+
+            cartData.forEach((item, index) => {
+                let subtotal = item.price * item.qty;
+                total += subtotal;
+                totalItems += parseInt(item.qty);
+
+                cartTableBody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.title}</strong></td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td><input type="number" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)" style="width:50px;"></td>
+                        <td>$${subtotal.toFixed(2)}</td>
+                        <td><button onclick="removeItem(${index})" style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td>
+                    </tr>`;
+            });
+
+            grandTotalEl.innerText = '$' + total.toFixed(2);
+            cartCountEl.innerText = totalItems;
+        }
+
+        function updateQty(index, newQty) {
+            cartData[index].qty = parseInt(newQty);
+            renderCart();
+        }
+
+        function removeItem(index) {
+            cartData.splice(index, 1);
+            renderCart();
+        }
+
+        function toggleCheckout() {
+            document.getElementById('checkout-section').style.display = 'block';
+        }
+
+        function processPayment(event) {
+            event.preventDefault();
+            alert("Payment Successful! Quantities updated in stock.");
+            cartData = []; // Clear cart after successful checkout
+            renderCart();
+            showSection('orders'); // Redirect to past orders
+        }
+
+        function addToCart(title, price, isbn) {
+            // Check if item already exists
+            const existingItem = cartData.find(item => item.isbn === isbn);
+            if (existingItem) {
+                existingItem.qty++;
+            } else {
+                cartData.push({ title, price, isbn, qty: 1 });
+            }
+            renderCart();
+            alert(title + " added to cart!");
+>>>>>>> 2bcca5eef4f9335cb2d1d4c937847e01259e87cc
+        }
+    </script>
+
+    <script src="search.js"></script>
+    <script src="cart.js"></script>
+    <script src="order-history.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>
