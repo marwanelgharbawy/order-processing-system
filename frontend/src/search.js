@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // 2. Fetch the data from your existing Backend endpoint
 async function loadBooks() {
-    const container = document.getElementById('book-grid');
+    const container = document.getElementById('book-container');
     
     try {
         // This hits your app.get('/books') exactly as you wrote it
