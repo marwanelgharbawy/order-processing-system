@@ -86,8 +86,9 @@
                         <option value="History">History</option>
                         <option value="Geography">Geography</option>
                     </select>
-                    <input type="number" id="stock" placeholder="Current Stock Quantity" required>
-                    
+
+                    <input type="number" id="initialStock" placeholder="Initial Stock Quantity" required min="0"> 
+
                     <input type="number" id="threshold" placeholder="Minimum Threshold" required>
                     <button class="btn-add" type="submit" style="grid-column: span 2;">Save Book to Database</button>
                 </form>
@@ -214,6 +215,7 @@
     <script src="src/admin_orders.js"></script>
     <script src="src/book_manipulation.js"></script>
     <script src="src/system_reports.js"></script>
+    <script src="src/place_orders.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections
