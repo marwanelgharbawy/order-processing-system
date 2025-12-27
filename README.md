@@ -64,16 +64,77 @@ The backend utilizes database triggers to ensure the system remains self-suffici
 # Description of the logic of each user interface screen
 ## Login Page
 ![Login_Page](README_images/login_page.png)
+1. Login & Registration Screen (login.html)
+
+    Login Logic:
+
+        Captures user credentials (username/password) and sends a POST request to the /login endpoint.
+
+        If successful, it stores the user's information and username in localStorage to maintain the session.
+
+        Redirects the user to the admin_dashboard.html if they are an "Admin" or to dashboard.html for regular customers.
+
+    Registration Logic:
+
+        Gathers personal details including username, password, email, and shipping address.
+
+        Sends a POST request to /register.
+
+        Upon successful registration, it alerts the user and switches the view back to the login form.
 
 ## Customer Pages
-### Profile Page
-![Profile_Page](README_images/Profile_Page.png)
 ### Browse Books
 ![Browse_Books](README_images/Browse_Books.png)
+2. Book Search (dashboard.html, search.js, book_manipulation.js)
+
+    Search & Browse Logic:
+
+        Users can search for books by ISBN, title, author, or publisher using a dropdown filter and text input.
+
+        The frontend sends a GET request to specialized backend routes (e.g., /books/search/title/:title).
+
+        Results are dynamically rendered as "book cards" showing the title, price, and stock status.
+
+    Category Filtering: Users can filter the catalog by specific categories (e.g., Science, Art, History), which triggers a request to /books/category/:category.
 ### Shopping Cart
 ![Shopping_Cart](README_images/Shopping_Cart.png)
+3. Shopping Cart & Checkout (cart.js)
+
+    Cart Management:
+
+        Adds books to a local cartData array stored in localStorage to persist across refreshes.
+
+        Calculates the grand total and total item count dynamically as users update quantities or remove items.
+
+    Checkout Logic:
+
+        Requires a credit card number and expiry date.
+
+        Sends the cart contents and payment info to the /checkout endpoint via a POST request.
+
+        Upon success, the cart is cleared from localStorage, and the user is redirected to their order history.
+### Profile Page
+![Profile_Page](README_images/Profile_Page.png)
+4. User Profile Screen (profile.js)
+
+    Data Loading: Automatically populates the profile form by parsing the user information stored in localStorage upon login.
+
+    Update Logic:
+
+        Allows users to edit their name, email, phone, and address.
+
+        Sends a PUT request to /customer/profile.
+
+        If successful, it merges the new data into localStorage so the UI reflects changes immediately without a re-login.
 ### Order History
 ![Order_History](README_images/Order_History.png)
+5. Order History Screen (order-history.js)
+
+    Logic:
+
+        Fetches all past orders for the logged-in user from /orders/history/:username.
+
+        Iterates through the retrieved orders to display the order number, date, total price, and a detailed summary of the items purchased in each transaction.
 
 ## Admin Pages
 ### Admin Browse Books
@@ -82,9 +143,39 @@ The backend utilizes database triggers to ensure the system remains self-suffici
 ![Admin_Add_Books](README_images/Admin_Add_Books.png)
 ### Admin Edit Books
 ![Admin_Edit_Books](README_images/Admin_Edit_Books.png)
+
+6. Admin: Book Management (book_manipulation.js, search.js)
+
+    Add Books: Captures full book metadata, including multiple authors (split by commas), and sends it to the backend.
+
+    Edit Books:
+
+        Admins search for a book by ISBN to load its current details into an editable table row.
+
+        Logic allows for updating the Title, Stock Quantity, and Price via a PUT request to /books/:isbn.
 ### Admin Orders Page
 ![Admin_Orders_Page](README_images/Admin_Orders_Page.png)
 ### Admin Confirm Orders
 ![Admin_Confirm_Orders](README_images/Admin_Confirm_Orders.png)
+7. Admin: Order & Inventory Management (place_orders.js, admin_orders.js)
+
+    Restock Suggestions (place_orders.js): Fetches a list of books where current stock is below the defined threshold from /books/low-stock.
+
+    Placing Orders: Admins can click "Place Order" to notify publishers, which sends a POST request to /admin/orders/place.
+
+    Confirming Receipts:
+
+        Displays all pending restock requests.
+
+        Clicking "Confirm Receipt" sends a POST request to /admin/orders/confirm/:restockId, which triggers a database update to increase the book's stock.
 ### Admin System Reports
 ![Admin_System_Reports](README_images/Admin_System_Reports.png)
+8. Admin: System Reports (system_reports.js)
+
+    Sales Tracking: Logic fetches and displays total sales for the previous month and allows admins to query sales for a specific date.
+
+    Analytics: Automatically loads lists of the "Top 5 Customers" and "Top 10 Selling Books" for the last three months upon opening the reports section.
+
+
+
+
