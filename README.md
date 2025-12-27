@@ -54,3 +54,9 @@ The backend utilizes database triggers to ensure the system remains self-suffici
 - Negative Stock Protection (PreventNegativeStock): A critical safety constraint that blocks any transaction—whether a sale or a manual update—that would result in a negative stock count.
 
 - Integrity Enforcement: Use of ON UPDATE CASCADE and ON DELETE CASCADE to maintain perfect synchronization between publishers, authors, and book records.
+
+# ER Diagram
+![ER_Diagram](README_images/ER_diagram.png)
+
+# Relational Schema
+![Relational_Schema](README_images/Relational_Schema.png)
