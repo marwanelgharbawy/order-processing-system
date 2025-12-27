@@ -52,12 +52,11 @@
         <h2>BookStore</h2>
         <nav>
             <a onclick="showSection('shop')" id="nav-shop" class="active">📚 Browse Books</a>
+            <a onclick="showSection('cart')" id="nav-cart">🛒 My Cart (<span id="cart-count">0</span>)</a>
             <a onclick="showSection('orders')" id="nav-orders">📦 Past Orders</a>
             <a onclick="showSection('profile')" id="nav-profile">👤 Profile</a>
         </nav>
-        
-        <div class="logout"><a href="cart.html" class="cart-link">🛒 My Cart (3)</a></div>
-        <div class="logout">✖ Logout</div>
+        <div class="logout" onclick="handleLogout()">✖ Logout</div>
     </aside>
 
     <main>
@@ -80,33 +79,96 @@
                     <div style="height:150px; background:#ddd; border-radius:4px;"></div> <h3>The Great Gatsby</h3>
                     <p>F. Scott Fitzgerald</p>
                     <div class="price">$15.99</div>
-                    <button class="btn-add">Add to Cart</button>
+                    <button class="btn-add" onclick="addToCart('The Great Gatsby', 15.99, '978-0743273565')">
+                        Add to Cart
+                    </button>
                 </div>
                 </div>
         </section>
 
         <section id="cart" class="section">
             <h1>Your Shopping Cart</h1>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Book</th>
-                        <th>ISBN</th>
-                        <th>Price</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>The Great Gatsby</td>
-                        <td>978-0743273565</td>
-                        <td>$15.99</td>
-                        <td><button style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td>
-                    </tr>
-                </tbody>
-            </table>
-            <p class="total-row">Total Price: $15.99</p>
-            <button class="btn-checkout" onclick="alert('Proceeding to Payment...')">Check Out</button>
+            <div class="cart-container" style="background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: hidden;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 40%">Book Details</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Subtotal</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-items">
+                        </tbody>
+                </table>
+                
+                <div id="empty-cart" style="text-align: center; padding: 50px; color: #999; display: none;">
+                    <p>Your cart is currently empty.</p>
+                </div>
+
+                <div class="cart-summary" id="cart-summary" style="display: flex; justify-content: flex-end; padding: 20px; background: #fff; gap: 40px; align-items: center; border-top: 2px solid #eee;">
+                    <div>
+                        <span style="font-size: 1.2rem; color: #666;">Total Amount:</span>
+                        <span id="grand-total" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">$0.00</span>
+                    </div>
+                    <button class="btn-checkout" onclick="toggleCheckout()" style="background: #27ae60; color: white; padding: 12px 30px; border: none; border-radius: 5px; cursor: pointer;">
+                        Check Out
+                    </button>
+                </div>
+            </div>
+
+            <div class="checkout-form" id="checkout-section" style="display: none; margin-top: 20px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <h2>Secure Checkout</h2>
+                <form onsubmit="processPayment(event)">
+                    <input type="text" placeholder="Credit Card Number" style="width: 100%; padding: 10px; margin-bottom: 10px;" required>
+                    <input type="month" placeholder="Expiry Date" style="width: 100%; padding: 10px; margin-bottom: 10px;" required>
+                    <button type="submit" style="background: var(--secondary); width: 100%; color: white; padding: 12px; border: none; border-radius: 5px; cursor: pointer;">Confirm Payment</button>
+                </form>
+            </div>
+        </section>
+
+        <section id="profile" class="section">
+            <h1>My Personal Information</h1>
+            <div class="profile-container" style="background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); max-width: 800px;">
+                <form id="edit-profile-form" onsubmit="saveProfile(event)">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">First Name</label>
+                            <input type="text" id="fname" value="John" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Last Name</label>
+                            <input type="text" id="lname" value="Doe" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Username</label>
+                            <input type="text" id="username" value="johndoe123" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px; background:#f9f9f9;" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Email Address</label>
+                            <input type="email" id="email" value="john@example.com" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">Phone Number</label>
+                            <input type="tel" id="phone" value="0123456789" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>
+                        </div>
+                        <div class="form-group">
+                            <label style="display:block; margin-bottom:8px; font-weight:bold;">New Password</label>
+                            <input type="password" id="password" placeholder="Leave blank to keep current" style="width:70%; padding:10px; border:1px solid #ddd; border-radius:4px;">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group" style="margin-top:20px;">
+                        <label style="display:block; margin-bottom:8px; font-weight:bold;">Shipping Address</label>
+                        <textarea id="address" rows="3" style="width:90%; padding:10px; border:1px solid #ddd; border-radius:4px;" required>123 Bookstore St, Knowledge City, 45678</textarea>
+                    </div>
+
+                    <button type="submit" style="margin-top:20px; background:var(--secondary); color:white; border:none; padding:12px 25px; border-radius:4px; cursor:pointer; font-weight:bold;">
+                        Save Changes
+                    </button>
+                </form>
+            </div>
         </section>
 
         <section id="orders" class="section">
@@ -147,6 +209,89 @@
                 link.classList.remove('active');
             });
             document.getElementById('nav-' + sectionId).classList.add('active');
+        }
+
+        function saveProfile(event) {
+            event.preventDefault();
+            
+            // In a real implementation, you would send this data to your SQL database
+            // using an UPDATE statement for the Customer table.
+            
+            const updatedData = {
+                firstName: document.getElementById('fname').value,
+                lastName: document.getElementById('lname').value,
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value
+            };
+
+            console.log("Saving to database:", updatedData);
+            
+            alert("Profile Updated Successfully!");
+        }
+
+        let cartData = []; // Starts empty
+
+        function renderCart() {
+            const cartTableBody = document.getElementById('cart-items');
+            const grandTotalEl = document.getElementById('grand-total');
+            const cartCountEl = document.getElementById('cart-count');
+            
+            cartTableBody.innerHTML = '';
+            let total = 0;
+            let totalItems = 0;
+
+            cartData.forEach((item, index) => {
+                let subtotal = item.price * item.qty;
+                total += subtotal;
+                totalItems += parseInt(item.qty);
+
+                cartTableBody.innerHTML += `
+                    <tr>
+                        <td><strong>${item.title}</strong></td>
+                        <td>$${item.price.toFixed(2)}</td>
+                        <td><input type="number" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)" style="width:50px;"></td>
+                        <td>$${subtotal.toFixed(2)}</td>
+                        <td><button onclick="removeItem(${index})" style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td>
+                    </tr>`;
+            });
+
+            grandTotalEl.innerText = '$' + total.toFixed(2);
+            cartCountEl.innerText = totalItems;
+        }
+
+        function updateQty(index, newQty) {
+            cartData[index].qty = parseInt(newQty);
+            renderCart();
+        }
+
+        function removeItem(index) {
+            cartData.splice(index, 1);
+            renderCart();
+        }
+
+        function toggleCheckout() {
+            document.getElementById('checkout-section').style.display = 'block';
+        }
+
+        function processPayment(event) {
+            event.preventDefault();
+            alert("Payment Successful! Quantities updated in stock.");
+            cartData = []; // Clear cart after successful checkout
+            renderCart();
+            showSection('orders'); // Redirect to past orders
+        }
+
+        function addToCart(title, price, isbn) {
+            // Check if item already exists
+            const existingItem = cartData.find(item => item.isbn === isbn);
+            if (existingItem) {
+                existingItem.qty++;
+            } else {
+                cartData.push({ title, price, isbn, qty: 1 });
+            }
+            renderCart();
+            alert(title + " added to cart!");
         }
     </script>
 
