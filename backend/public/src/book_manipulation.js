@@ -1,19 +1,16 @@
 async function loadBooks(query = '', type = 'title', category = 'All Categories') {
     const container = document.getElementById('book-container');
+    if (!container) return; // Guard clause
+
     container.innerHTML = '<p style="padding:20px;">Loading books...</p>';
 
     let url = '/books'; 
 
     if (query) {
-        if (type === 'isbn') {
-            url = `/books/${encodeURIComponent(query)}`;
-        } else if (type === 'title') {
-            url = `/books/search/title/${encodeURIComponent(query)}`;
-        } else if (type === 'author') {
-            url = `/books/search/author/${encodeURIComponent(query)}`;
-        } else if (type === 'publisher') {
-            url = `/books/search/publisher/${encodeURIComponent(query)}`;
-        }
+        if (type === 'isbn') url = `/books/${encodeURIComponent(query)}`;
+        else if (type === 'title') url = `/books/search/title/${encodeURIComponent(query)}`;
+        else if (type === 'author') url = `/books/search/author/${encodeURIComponent(query)}`;
+        else if (type === 'publisher') url = `/books/search/publisher/${encodeURIComponent(query)}`;
     } else if (category && category !== 'All Categories') {
         url = `/books/category/${encodeURIComponent(category)}`;
     }
@@ -44,6 +41,21 @@ async function loadBooks(query = '', type = 'title', category = 'All Categories'
         books.forEach(book => {
             const card = document.createElement('div');
             card.className = 'book-card';
+            
+            // Escape title to prevent JS errors in the onclick
+            const safeTitle = book.Title ? book.Title.replace(/'/g, "\\'") : "Unknown";
+            
+            // Only show "Add to Cart" if the addToCart function exists (Customer Page)
+            let actionButton = '';
+            if (typeof addToCart === 'function') {
+                actionButton = `
+                    <button class="btn-add" 
+                        onclick="addToCart('${safeTitle}', ${book.SellingPrice}, '${book.ISBN}')">
+                        Add to Cart
+                    </button>
+                `;
+            }
+
             card.innerHTML = `
                 <div style="height:120px; background:#f4f4f4; border-radius:4px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:#888;">
                     ISBN: ${book.ISBN}
@@ -53,9 +65,10 @@ async function loadBooks(query = '', type = 'title', category = 'All Categories'
                 <div class="price" style="font-size: 1.2em; color: #27ae60; font-weight: bold; margin: 10px 0;">
                     $${parseFloat(book.SellingPrice).toFixed(2)}
                 </div>
-                <p style="font-size: 0.9em; color: ${book.StockQuantity > 5 ? 'green' : 'orange'};">
-                    Stock: ${book.StockQuantity}
+                <p style="font-size: 0.9em; color: ${book.StockQuantity > 0 ? 'green' : 'red'}; margin-bottom:10px;">
+                    ${book.StockQuantity > 0 ? `In Stock: ${book.StockQuantity}` : 'Out of Stock'}
                 </p>
+                ${actionButton}
             `;
             container.appendChild(card);
         });
@@ -66,38 +79,34 @@ async function loadBooks(query = '', type = 'title', category = 'All Categories'
     }
 }
 
+// Button Handler for the Search Bar
 function handleShopSearch() {
-    const query = document.getElementById('shopSearchInput').value.trim();
-    const type = document.getElementById('searchTypeSelect').value;
-    const category = document.getElementById('shopCategorySelect').value;
+    // We check if elements exist to avoid errors on pages that might miss them
+    const searchInput = document.getElementById('shopSearchInput');
+    const typeSelect = document.getElementById('searchTypeSelect');
+    const categorySelect = document.getElementById('shopCategorySelect');
+
+    const query = searchInput ? searchInput.value.trim() : '';
+    const type = typeSelect ? typeSelect.value : 'title';
+    const category = categorySelect ? categorySelect.value : 'All Categories';
+
     loadBooks(query, type, category);
 }
 
 // Initial load
 document.addEventListener('DOMContentLoaded', () => {
-    // Only load if on the main dashboard page
     if(document.getElementById('book-container')) {
         loadBooks();
     }
 });
 
 const addBookForm = document.querySelector('#add_books form');
-
 if (addBookForm) {
     addBookForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
         const authorsInput = document.getElementById('authors').value;
-        const authorsArray = authorsInput
-            .split(',')
-            .map(author => author.trim())
-            .filter(author => author.length > 0);
+        const authorsArray = authorsInput.split(',').map(a => a.trim()).filter(a => a.length > 0);
         
-        if (authorsArray.length === 0) {
-            alert("Please enter at least one author.");
-            return;
-        }
-
         const newBook = {
             isbn: document.getElementById('isbn').value,
             title: document.getElementById('title').value,
@@ -107,7 +116,7 @@ if (addBookForm) {
             sellingPrice: parseFloat(document.getElementById('price').value),
             threshold: parseInt(document.getElementById('threshold').value),
             publisherName: document.getElementById('publisher').value,
-            stockQuantity: 0 // Needs to be modified
+            stockQuantity: 0
         };
 
         try {
@@ -116,63 +125,36 @@ if (addBookForm) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(newBook)
             });
-
-            if (response.ok) {
-                alert("Book added successfully!");
-                addBookForm.reset();
-            } else {
-                const error = await response.json();
-                alert("Error: " + (error.error || "Unknown error"));
-            }
-        } catch (err) {
-            console.error("Submission failed", err);
-            alert("Failed to add book. Is the server running?");
-        }
+            if (response.ok) { alert("Book added!"); addBookForm.reset(); } 
+            else { const err = await response.json(); alert("Error: " + err.error); }
+        } catch (err) { alert("Failed to add book."); }
     });
 }
 
 async function searchBookToEdit() {
     const isbn = document.getElementById('editSearchIsbn').value.trim();
-    if (!isbn) return alert("Please enter an ISBN");
-
+    if (!isbn) return alert("Enter ISBN");
     try {
         const response = await fetch(`/books/${isbn}`);
-        
-        if (!response.ok) {
-            alert("Book not found!");
-            return;
-        }
-
+        if (!response.ok) return alert("Book not found");
         const book = await response.json();
-
-        // Target the table body in the edit_books section
         const tbody = document.querySelector('#edit_books table tbody');
-        
-        // Store the category in a data attribute so we don't lose it on update
-        // We also add price input here since backend supports updating it
         tbody.innerHTML = `
             <tr data-isbn="${book.ISBN}" data-category="${book.Category}">
                 <td>${book.ISBN}</td>
                 <td><input type="text" value="${book.Title}" class="title-input" style="width:100%"></td>
-                <td><input type="number" value="${book.StockQuantity}" class="stock-input" style="width: 60px;"></td>
-                <td><input type="number" value="${book.SellingPrice}" class="price-input" style="width: 60px;"></td>
+                <td><input type="number" value="${book.StockQuantity}" class="stock-input" style="width:60px"></td>
+                <td><input type="number" value="${book.SellingPrice}" class="price-input" style="width:60px"></td>
                 <td><button class="btn-add" onclick="updateBook('${book.ISBN}')">Save</button></td>
-            </tr>
-        `;
-    } catch (err) {
-        console.error(err);
-        alert("Error finding book");
-    }
+            </tr>`;
+    } catch (err) { alert("Error finding book"); }
 }
 
 async function updateBook(isbn) {
     const row = document.querySelector(`tr[data-isbn="${isbn}"]`);
-    if (!row) return;
-
     const newTitle = row.querySelector('.title-input').value;
     const newStock = row.querySelector('.stock-input').value;
     const newPrice = row.querySelector('.price-input').value;
-    // Retrieve the category we saved earlier
     const currentCategory = row.getAttribute('data-category'); 
 
     try {
@@ -180,21 +162,10 @@ async function updateBook(isbn) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                title: newTitle,
-                stockQuantity: parseInt(newStock),
-                sellingPrice: parseFloat(newPrice),
-                category: currentCategory // Backend requires this field
+                title: newTitle, stockQuantity: parseInt(newStock), sellingPrice: parseFloat(newPrice), category: currentCategory
             })
         });
-
-        if (response.ok) {
-            alert("Book updated successfully!");
-        } else {
-            const err = await response.json();
-            alert("Update failed: " + err.error);
-        }
-    } catch (error) {
-        console.error("Error updating book:", error);
-        alert("Failed to connect to server");
-    }
+        if (response.ok) alert("Updated!");
+        else alert("Update failed");
+    } catch (error) { alert("Connection failed"); }
 }
