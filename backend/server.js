@@ -215,6 +215,7 @@ app.post('/books', async (req, res) => {
                     'INSERT INTO BOOK_AUTHORS (ISBN, AuthorName) VALUES (?, ?)',
                     [isbn, author]
                 );
+                console.log(`Author inserted: ${author}`);
             }
         }
 
