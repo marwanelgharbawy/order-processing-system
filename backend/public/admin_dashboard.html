@@ -104,16 +104,15 @@
                         <th>ISBN</th>
                         <th>Title</th>
                         <th>Current Stock</th>
-                        <th>Threshold</th>
+                        <th>Selling Price</th>
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="edit-books-tbody">
                     <tr>
-                        <td>978-0743273565</td> <td><input type="text" value="The Great Gatsby" class="title-input"></td>
-                        <td><input type="number" value="15" class="stock-input" style="width: 60px;"></td>
-                        <td><input type="number" value="9.99" class="price-input" style="width: 60px;"></td>
-                        <td><button class="btn-add" onclick="updateBook('978-0743273565')">Save Changes</button></td>
+                        <td colspan="5" style="text-align: center; padding: 20px; color: #888;">
+                            
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -217,6 +216,7 @@
     <script src="src/admin_orders.js"></script>
     <script src="src/book_manipulation.js"></script>
     <script src="src/system_reports.js"></script>
+    <script src="src/place_orders.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections

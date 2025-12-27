@@ -172,7 +172,6 @@ async function updateBook(isbn) {
     const newTitle = row.querySelector('.title-input').value;
     const newStock = row.querySelector('.stock-input').value;
     const newPrice = row.querySelector('.price-input').value;
-    // Retrieve the category we saved earlier
     const currentCategory = row.getAttribute('data-category'); 
 
     try {
@@ -183,7 +182,7 @@ async function updateBook(isbn) {
                 title: newTitle,
                 stockQuantity: parseInt(newStock),
                 sellingPrice: parseFloat(newPrice),
-                category: currentCategory // Backend requires this field
+                //category: currentCategory
             })
         });
 
