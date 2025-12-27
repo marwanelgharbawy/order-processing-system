@@ -42,19 +42,24 @@ async function loadBooks(query = '', type = 'all') {
 
 //helper function
 function handleShopSearch() {
-    const isbn = document.getElementById('shopSearchInput').value.trim();
+    const query = document.getElementById('shopSearchInput').value.trim();
     const category = document.getElementById('shopCategorySelect').value;
+    let url = '/books';
 
-    if (isbn) {
-        // Search by ISBN
-        loadBooks(isbn, 'isbn');
+    if (query) {
+        // Simple logic: If it contains numbers and dashes only, treat as ISBN
+        const isIsbn = /^[0-9-]+$/.test(query);
+        if (isIsbn) {
+            url = `/books/${query}`;
+        } else {
+            // Otherwise, search by title (you can add a toggle for Author search later)
+            url = `/books/search/title/${encodeURIComponent(query)}`;
+        }
     } else if (category !== 'All Categories') {
-        // Search by Category
-        loadBooks(category, 'category');
-    } else {
-        // Show everything
-        loadBooks();
+        url = `/books/category/${encodeURIComponent(category)}`;
     }
+
+    loadBooksFromUrl(url);
 }
 
 
