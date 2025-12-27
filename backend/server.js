@@ -279,7 +279,25 @@ app.get('/admin/orders', async (req, res) => {
     }
 });
 
-// Admin orders accept
+// Customer Orders (For Admin)
+app.get('/admin/customer-orders', async (req, res) => {
+    try {
+        const query = `
+            SELECT O.OrderNo, O.OrderDate, O.TotalPrice, O.CustomerUsername,
+                   GROUP_CONCAT(B.Title SEPARATOR ', ') as Items
+            FROM CUSTOMER_ORDER O
+            JOIN ORDER_ITEMS OI ON O.OrderNo = OI.OrderNo
+            JOIN BOOK B ON OI.ISBN = B.ISBN
+            GROUP BY O.OrderNo
+            ORDER BY O.OrderDate DESC
+        `;
+        const [rows] = await db.query(query);
+        res.json(rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch customer orders" });
+    }
+});
 
 // Customer Orders
 // Checking out requires a series of operations that must all succeed
