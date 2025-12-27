@@ -27,6 +27,8 @@ app.get('/books', async (req, res) => {
     }
 });
 
+// Searching
+
 // Search by ISBN
 // req.params: parameters from the URL
 app.get('/books/:isbn', async (req, res) => {
@@ -56,6 +58,61 @@ app.get('/books/category/:categoryName', async (req, res) => {
         res.status(500).json({ error: "Database error" });
     }
 });
+
+// Search by Title (Partial Match)
+app.get('/books/search/title/:title', async (req, res) => {
+    try {
+        const { title } = req.params;
+        const searchTerm = `%${title}%`; // Wildcard for partial match to be put in query
+
+        const [rows] = await db.query('SELECT * FROM BOOK WHERE Title LIKE ?', [searchTerm]);
+        
+        console.log(`Books found for title search "${title}": ${rows.length}`);
+        res.json(rows);
+    } catch (err) {
+        console.error("Search by title error:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// Search by author
+app.get('/books/search/author/:author', async (req, res) => {
+    try {
+        const { author } = req.params;
+        const searchTerm = `%${author}%`;
+
+        // Requires JOIN because authors are in a separate table
+        const query = `
+            SELECT DISTINCT B.* FROM BOOK B 
+            JOIN BOOK_AUTHORS A ON B.ISBN = A.ISBN 
+            WHERE A.AuthorName LIKE ?
+        `;
+
+        const [rows] = await db.query(query, [searchTerm]);
+        
+        console.log(`Books found for author search "${author}": ${rows.length}`);
+        res.json(rows);
+    } catch (err) {
+        console.error("Search by author error:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+});
+
+// Search by publisher
+app.get('/books/search/publisher/:publisher', async (req, res) => {
+    try {
+        const { publisher } = req.params;
+        const searchTerm = `%${publisher}%`;
+
+        const [rows] = await db.query('SELECT * FROM BOOK WHERE PublisherName LIKE ?', [searchTerm]);
+        
+        console.log(`Books found for publisher search "${publisher}": ${rows.length}`);
+        res.json(rows);
+    } catch (err) {
+        console.error("Search by publisher error:", err);
+        res.status(500).json({ error: "Database error" });
+    }
+}); 
 
 // User registration
 // POST request to /register with JSON body
@@ -127,13 +184,13 @@ app.post('/books', async (req, res) => {
 // Modify book details (Admin)
 app.put('/books/:isbn', async (req, res) => {
     const { isbn } = req.params;
-    const { title, category, sellingPrice, stockQuantity} = req.body;
+    const { title, sellingPrice, stockQuantity} = req.body;
 
     try {
         // execute the update
         const [result] = await db.query(
-            'UPDATE BOOK SET Title = ?, Category = ?, SellingPrice = ?, StockQuantity = ? WHERE ISBN = ?',
-            [title, category, sellingPrice, stockQuantity, isbn]
+            'UPDATE BOOK SET Title = ?, SellingPrice = ?, StockQuantity = ? WHERE ISBN = ?',
+            [title, sellingPrice, stockQuantity, isbn]
         );
 
         // If no rows were affected, the ISBN doesn't exist
@@ -230,6 +287,13 @@ app.post('/checkout', async (req, res) => {
     } finally {
         connection.release();
     }
+});
+
+// System Reports (Admin Only)
+// Few SQL queries
+
+app.get('/admin/reports/total-sales/', async (req, res) => {
+    
 });
 
 app.listen(PORT, () => {
