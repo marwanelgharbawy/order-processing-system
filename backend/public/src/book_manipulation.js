@@ -116,7 +116,11 @@ if (addBookForm) {
             sellingPrice: parseFloat(document.getElementById('price').value),
             threshold: parseInt(document.getElementById('threshold').value),
             publisherName: document.getElementById('publisher').value,
-            stockQuantity: parseInt(document.getElementById('stock').value)
+
+            stockQuantity: parseInt(document.getElementById('initialStock').value)
+
+
+
         };
 
         try {
@@ -162,7 +166,14 @@ async function updateBook(isbn) {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
+
+                title: newTitle,
+                stockQuantity: parseInt(newStock),
+                sellingPrice: parseFloat(newPrice),
+                //category: currentCategory
+
                 title: newTitle, stockQuantity: parseInt(newStock), sellingPrice: parseFloat(newPrice), category: currentCategory
+
             })
         });
         if (response.ok) alert("Updated!");
