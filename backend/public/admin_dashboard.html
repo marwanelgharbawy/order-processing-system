@@ -26,13 +26,23 @@
         <section id="shop" class="section active">
             <h1>Search for Books</h1>
             <div class="search-container">
-                <input type="text" id="shopSearchInput" placeholder="Search by ISBN...">
-                <select id="shopCategorySelect">
+                <select id="searchTypeSelect" style="padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="title">Title</option>
+                    <option value="author">Author</option>
+                    <option value="publisher">Publisher</option>
+                    <option value="isbn">ISBN</option>
+                </select>
+
+                <input type="text" id="shopSearchInput" placeholder="Enter search term..." style="flex: 2;">
+                
+                <select id="shopCategorySelect" style="flex: 1;">
                     <option value="All Categories">All Categories</option>
                     <option value="Science">Science</option>
                     <option value="Art">Art</option>
+                    <option value="Religion">Religion</option>
                     <option value="History">History</option>
-                </select>
+                    <option value="Geography">Geography</option>
+                </select>      
                 <button class="btn-add" style="width: auto;" onclick="handleShopSearch()">Search</button>
             </div>
             
@@ -201,11 +211,11 @@
         </section>
     </main>
 
-    <script src="reports.js"></script>
-    <script src="dashboard.js"></script>
-    <script src="admin_orders.js"></script>
-    <script src="book_manipulation.js"></script>
-    <script src="system_reports.js"></script>
+    <script src="src/reports.js"></script>
+    <script src="src/dashboard.js"></script>
+    <script src="src/admin_orders.js"></script>
+    <script src="src/book_manipulation.js"></script>
+    <script src="src/system_reports.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections
