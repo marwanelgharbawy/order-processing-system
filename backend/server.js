@@ -162,6 +162,35 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Edit user profile
+// Updates password, names, phone, address
+app.put('/customer/:username', async (req, res) => {
+    // We expect the username to be passed in the body
+    const { username } = req.params;
+    const { password, firstName, lastName, phone, shippingAddress } = req.body;
+
+    try {
+
+        const query = `
+            UPDATE CUSTOMER 
+            SET Password = ?, FirstName = ?, LastName = ?, Phone = ?, ShippingAddress = ? 
+            WHERE Username = ?
+        `;
+
+        const [result] = await db.query(query, [password, firstName, lastName, phone, shippingAddress, username]);
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        console.log(`Customer profile updated: ${username}`);
+        res.json({ message: "Profile updated successfully" });
+    } catch (err) {
+        console.error("Profile update failed:", err);
+        res.status(500).json({ error: "Failed to update profile" });
+    }
+});
+
 // Add book (Admin)
 app.post('/books', async (req, res) => {
     const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity } = req.body;
@@ -288,6 +317,45 @@ app.post('/checkout', async (req, res) => {
         connection.release();
     }
 });
+
+// -- Might need verification --
+// View past orders (Customer)
+// This retrieves all orders for a specific user with detailed book information
+app.get('/orders/history/:username', async (req, res) => {
+    const { username } = req.params;
+
+    try {
+        const query = `
+            SELECT 
+                CO.OrderNo, 
+                CO.OrderDate, 
+                CO.TotalPrice, 
+                B.ISBN, 
+                B.Title AS BookName, 
+                OI.Quantity
+            FROM CUSTOMER_ORDER CO
+            JOIN ORDER_ITEMS OI ON CO.OrderNo = OI.OrderNo
+            JOIN BOOK B ON OI.ISBN = B.ISBN
+            WHERE CO.CustomerUsername = ?
+            ORDER BY CO.OrderDate DESC;
+        `;
+
+        const [rows] = await db.query(query, [username]);
+
+        if (rows.length === 0) {
+            console.log(`No past orders found for user: ${username}`);
+            return res.json({ message: "No past orders found.", orders: [] });
+        }
+
+        console.log(`Fetched past orders for user: ${username}`);
+        res.json(rows);
+    } catch (err) {
+        console.error("Error fetching order history:", err);
+        res.status(500).json({ error: "Failed to fetch order history" });
+    }
+});
+
+
 
 // Confirm Admin Restock Order (Transaction)
 app.post('/admin/orders/confirm/:restockId', async (req, res) => {
