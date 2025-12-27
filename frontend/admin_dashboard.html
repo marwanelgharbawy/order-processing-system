@@ -79,7 +79,7 @@
             <div class="book-grid" id ="book-container">
             </div>
         </section>
-        <section id="orders" class="section">
+       <section id="orders" class="section">
             <h1>Order History</h1>
             <table>
                 <thead>
@@ -90,14 +90,8 @@
                         <th>Details</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>#ORD-8821</td>
-                        <td>2023-10-15</td>
-                        <td>$45.50</td>
-                        <td><button>View Details</button></td>
-                    </tr>
-                </tbody>
+                <tbody id="admin-orders-table-body">
+                    </tbody>
             </table>
         </section>
         <section id="add_books" class="section">
@@ -181,21 +175,18 @@
         </section>
         <section id="system_reports" class="section">
             <h1>System Reports</h1>
-            
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
                 <div class="book-card" style="text-align: left;">
                     <h3>Sales Reports</h3>
-                    <label>Total Sales Last Month: <strong>$12,450.00</strong></label><br><br>
-                    <input type="date">
-                    <button class="btn-add" style="margin-top: 10px;">Get Sales for Date</button>
+                    <label>Sales for selected date: <strong id="salesAmountDisplay">$0.00</strong></label><br><br>
+                    <input type="date" id="reportDate">
+                    <button class="btn-add" onclick="getSalesByDate()" style="margin-top: 10px;">Get Sales for Date</button>
                 </div>
 
                 <div class="book-card" style="text-align: left;">
-                    <h3>Top 5 Customers (Last 3 Months)</h3>
-                    <ol>
-                        <li>Alice Johnson - $1,200</li>
-                        <li>Bob Smith - $950</li>
-                        <li>Charlie Brown - $800</li>
+                    <h3>Top 5 Customers</h3>
+                    <ol id="topCustomersList">
+                        <li>Loading...</li>
                     </ol>
                 </div>
 
@@ -205,16 +196,17 @@
                         <thead>
                             <tr><th>Rank</th><th>Book Title</th><th>Copies Sold</th></tr>
                         </thead>
-                        <tbody>
-                            <tr><td>1</td><td>The Great Gatsby</td><td>142</td></tr>
-                            <tr><td>2</td><td>Sapiens</td><td>98</td></tr>
+                        <tbody id="topBooksTableBody">
+                            <tr><td colspan="3">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </section>
     </main>
+    <script src="reports.js"></script>
     <script src="dashboard.js"></script>
+    <script src="admin_orders.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections

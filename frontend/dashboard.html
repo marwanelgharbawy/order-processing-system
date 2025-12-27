@@ -165,6 +165,10 @@
                 link.classList.remove('active');
             });
             document.getElementById('nav-' + sectionId).classList.add('active');
+            if (sectionId === 'system_reports') {
+        loadTopCustomers(); // refresh kol mara
+        loadTopBooks();
+    }
         }
     </script>
 
