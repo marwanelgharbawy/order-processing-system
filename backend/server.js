@@ -355,35 +355,58 @@ app.get('/orders/history/:username', async (req, res) => {
     try {
         const query = `
             SELECT 
-                CO.OrderNo, 
-                CO.OrderDate, 
-                CO.TotalPrice, 
+                O.OrderNo, 
+                O.OrderDate, 
+                O.TotalPrice, 
+                OI.Quantity, 
                 B.ISBN, 
                 B.Title AS BookName, 
-                OI.Quantity
-            FROM CUSTOMER_ORDER CO
-            JOIN ORDER_ITEMS OI ON CO.OrderNo = OI.OrderNo
+                B.SellingPrice 
+            FROM CUSTOMER_ORDER O
+            JOIN ORDER_ITEMS OI ON O.OrderNo = OI.OrderNo
             JOIN BOOK B ON OI.ISBN = B.ISBN
-            WHERE CO.CustomerUsername = ?
-            ORDER BY CO.OrderDate DESC;
+            WHERE O.CustomerUsername = ?
+            ORDER BY O.OrderDate DESC
         `;
 
         const [rows] = await db.query(query, [username]);
 
         if (rows.length === 0) {
-            console.log(`No past orders found for user: ${username}`);
-            return res.json({ message: "No past orders found.", orders: [] });
+            return res.json([]); // No orders found, return empty array
         }
 
-        console.log(`Fetched past orders for user: ${username}`);
-        res.json(rows);
+        // Grouping Logic -> using a map to group items by OrderNo
+        const ordersMap = new Map();
+
+        rows.forEach(row => {
+            if (!ordersMap.has(row.OrderNo)) {
+                ordersMap.set(row.OrderNo, {
+                    orderNo: row.OrderNo,
+                    totalPrice: row.TotalPrice,
+                    orderDate: row.OrderDate,
+                    items: [] 
+                });
+            }
+            
+            // Push item into the correct order's array
+            ordersMap.get(row.OrderNo).items.push({
+                title: row.BookName,
+                isbn: row.ISBN,
+                quantity: row.Quantity, // Added quantity
+                price: row.SellingPrice
+            });
+        });
+
+        const orders = Array.from(ordersMap.values());
+        console.log(`Fetched ${orders.length} past orders for ${username}`);
+        res.json(orders);
+
     } catch (err) {
-        console.error("Error fetching order history:", err);
-        res.status(500).json({ error: "Failed to fetch order history" });
+        console.error("Fetch past orders failed:", err);
+        res.status(500).json({ error: "Failed to fetch orders" });
     }
 });
 
-// why not PUT?
 // Confirm Admin Restock Order (Transaction)
 app.post('/admin/orders/confirm/:restockId', async (req, res) => {
     const { restockId } = req.params;
