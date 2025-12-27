@@ -5,11 +5,12 @@ const db = require('./db');
 const app = express();
 const PORT = 3000;
 
-// Middleware to parse JSON bodies
+// Middleware to parse JSON bodies and URL-encoded bodies
 app.use(express.json());
-
-// Middleware to parse URL-encoded bodies
 app.use(express.urlencoded({ extended: true }));
+
+// Use files in public folder
+app.use(express.static('public'));
 
 app.get('/', (req, res) => {
     res.send("Backend server is running");
