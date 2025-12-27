@@ -107,7 +107,7 @@ if (addBookForm) {
             sellingPrice: parseFloat(document.getElementById('price').value),
             threshold: parseInt(document.getElementById('threshold').value),
             publisherName: document.getElementById('publisher').value,
-            stockQuantity: 0 // Needs to be modified
+            stockQuantity: parseInt(document.getElementById('initialStock').value)
         };
 
         try {
