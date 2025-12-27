@@ -60,3 +60,31 @@ The backend utilizes database triggers to ensure the system remains self-suffici
 
 # Relational Schema
 ![Relational_Schema](README_images/Relational_Schema.png)
+
+# Description of the logic of each user interface screen
+## Login Page
+![Login_Page](README_images/login_page.png)
+
+## Customer Pages
+### Profile Page
+![Profile_Page](README_images/Profile_Page.png)
+### Browse Books
+![Browse_Books](README_images/Browse_Books.png)
+### Shopping Cart
+![Shopping_Cart](README_images/Shopping_Cart.png)
+### Order History
+![Order_History](README_images/Order_History.png)
+
+## Admin Pages
+### Admin Browse Books
+![Admin_Browse_Books](README_images/Admin_Browse_Books.png)
+### Admin Add Books
+![Admin_Add_Books](README_images/Admin_Add_Books.png)
+### Admin Edit Books
+![Admin_Edit_Books](README_images/Admin_Edit_Books.png)
+### Admin Orders Page
+![Admin_Orders_Page](README_images/Admin_Orders_Page.png)
+### Admin Confirm Orders
+![Admin_Confirm_Orders](README_images/Admin_Confirm_Orders.png)
+### Admin System Reports
+![Admin_System_Reports](README_images/Admin_System_Reports.png)
