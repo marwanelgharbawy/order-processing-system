@@ -20,7 +20,25 @@
         aside h2 { font-size: 1.5rem; margin-bottom: 30px; border-bottom: 1px solid #555; padding-bottom: 10px; }
         aside nav a { display: block; color: #bdc3c7; text-decoration: none; padding: 12px; margin: 5px 0; border-radius: 5px; cursor: pointer; transition: 0.3s; }        aside nav a:hover, aside nav a.active { background: var(--secondary); color: white; }
         .logout { margin-top: auto; color: #ff7675; cursor: pointer; padding: 12px; }
+        .cart-link {
+            text-decoration: none; /* Removes the underline */
+            color: white;          /* Matches your sidebar text color */
+            display: block;        /* Makes the whole area clickable */
+            padding: 10px;
+            border-radius: 5px;
+            transition: background 0.2s; /* Smooth hover effect */
+        }
 
+        /* Make it look like a button when you hover */
+        .cart-link:hover {
+            background-color: #34495e; /* A slightly lighter shade of the sidebar color */
+            color: #3498db;            /* Change text color to your primary blue */
+        }
+
+        /* Ensure it doesn't turn purple after you click it */
+        .cart-link:visited {
+            color: white;
+        }
         /* Main Content */
         main { flex-grow: 1; padding: 30px; overflow-y: auto; }
         .section { display: none; }
