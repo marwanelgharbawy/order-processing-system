@@ -219,7 +219,7 @@
     <script src="src/place_orders.js"></script>
     <script>
         function showSection(sectionId) {
-            // Hide all sections
+             // Hide all sections
             document.querySelectorAll('.section').forEach(section => {
                 section.classList.remove('active');
             });
@@ -231,9 +231,19 @@
                 link.classList.remove('active');
             });
             document.getElementById('nav-' + sectionId).classList.add('active');
+            
+            // Load data based on section
             if (sectionId === 'system_reports') {
-                loadTopCustomers(); // refresh kol mara
+                loadTopCustomers();
                 loadTopBooks();
+                loadPreviousMonthSales();
+            } else if (sectionId === 'place_orders') {
+                loadPlaceOrders();
+            } else if (sectionId === 'confirm_orders') {
+                loadConfirmOrders();
+            }
+            else if (sectionId === 'orders') {
+                loadAdminOrders();
             }
         }
     </script>

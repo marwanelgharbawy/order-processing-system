@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Load static reports on page load
     loadTopCustomers();
-    loadTopSellingBooks();
+    loadTopBooks();
     loadPreviousMonthSales();
 });
 
@@ -9,12 +9,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadPreviousMonthSales() {
     const display = document.getElementById('prevMonthSales');
-    
+    if (!display) return;
+
     try {
         const response = await fetch('/admin/reports/sales/previous-month');
         const data = await response.json();
         
-        const total = data.TotalSales || 0;
+        // Use a fallback to 0 and handle different possible naming from SQL
+        const total = data.TotalSales || data[Object.keys(data)[0]] || 0;
+        
         display.innerText = `$${Number(total).toFixed(2)}`;
     } catch (err) {
         console.error("Error fetching monthly sales:", err);
@@ -80,7 +83,7 @@ async function loadTopBooks() {
         tableBody.innerHTML = '';
 
         if (books.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="3">No sales data found.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="4">No sales data found.</td></tr>'; // Changed from 3 to 4
             return;
         }
 
@@ -88,13 +91,15 @@ async function loadTopBooks() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td>${book.Title} <br><small>${book.ISBN}</small></td>
+                <td>${book.Title}</td>
+                <td>${book.ISBN}</td>
                 <td>${book.TotalCopiesSold} units</td>
             `;
             tableBody.appendChild(row);
         });
     } catch (err) {
-        tableBody.innerHTML = '<tr><td colspan="3">Error loading reports.</td></tr>';
+        console.error("Error loading top books:", err);
+        tableBody.innerHTML = '<tr><td colspan="4">Error loading reports.</td></tr>'; // Changed from 3 to 4
     }
 }
 
