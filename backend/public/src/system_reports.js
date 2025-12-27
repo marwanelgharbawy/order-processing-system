@@ -1,20 +1,21 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Load static reports on page load
     loadTopCustomers();
-    loadTopSellingBooks();
+    loadTopBooks();
     loadPreviousMonthSales();
 });
 
-
-
 async function loadPreviousMonthSales() {
     const display = document.getElementById('prevMonthSales');
-    
+    if (!display) return;
+
     try {
         const response = await fetch('/admin/reports/sales/previous-month');
         const data = await response.json();
         
-        const total = data.TotalSales || 0;
+        // Use a fallback to 0 and handle different possible naming from SQL
+        const total = data.TotalSales || data[Object.keys(data)[0]] || 0;
+        
         display.innerText = `$${Number(total).toFixed(2)}`;
     } catch (err) {
         console.error("Error fetching monthly sales:", err);

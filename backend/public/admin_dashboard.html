@@ -53,18 +53,19 @@
         </section>
 
        <section id="orders" class="section">
-            <h1>Order History</h1>
+            <h1>All Customer Sales</h1>
             <table>
                 <thead>
                     <tr>
                         <th>Order #</th>
+                        <th>Customer</th>
                         <th>Date</th>
                         <th>Total Amount</th>
-                        <th>Details</th>
+                        <th>Items</th>
                     </tr>
                 </thead>
-                <tbody id="admin-orders-table-body">
-                    </tbody>
+                <tbody id="all-orders-body"> <tr><td colspan="5">Loading sales data...</td></tr>
+                </tbody>
             </table>
         </section>
 
@@ -118,48 +119,36 @@
         </section>
 
         <section id="place_orders" class="section">
-            <h1>Place Orders with Publishers</h1>
-            <p>Books below threshold that need restocking</p>
+            <h1>Low Stock Alert</h1>
+            <p>Books below threshold that need restocking.</p>
             <table>
                 <thead>
                     <tr>
                         <th>ISBN</th>
-                        <th>Book Title</th>
-                        <th>Publisher</th>
+                        <th>Title</th>
                         <th>Current Stock</th>
                         <th>Threshold</th>
-                        <th>Order Quantity</th>
-                        <th>Action</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
-                <tbody id="place-orders-table-body">
-                    <tr><td colspan="7">Loading...</td></tr>
+                <tbody id="low-stock-body"> <tr><td colspan="5">Checking inventory...</td></tr>
                 </tbody>
             </table>
         </section>
 
         <section id="confirm_orders" class="section">
-            <h1>Confirm Orders</h1>
+            <h1>Confirm Restock Shipments</h1>
             <table>
                 <thead>
                     <tr>
-                        <th>Order ID</th>
-                        <th>Book Title</th>
-                        <th>Publisher</th>
-                        <th>Qty Ordered</th>
+                        <th>Restock ID</th>
+                        <th>ISBN</th>
+                        <th>Qty Requested</th>
                         <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <tr>
-                        <td>SUP-101</td>
-                        <td>Brief History of Time</td>
-                        <td>Oxford Press</td>
-                        <td>50</td>
-                        <td><span style="color:orange;">Pending</span></td>
-                        <td><button class="btn-add" style="background:#27ae60;" onclick="confirmRestock('SUP-101')">Confirm Receipt</button></td>
-                    </tr>
+                <tbody id="restock-orders-body"> <tr><td colspan="5">Loading requests...</td></tr>
                 </tbody>
             </table>
         </section>

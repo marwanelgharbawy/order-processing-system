@@ -489,8 +489,7 @@ app.get('/admin/reports/sales/previous-month', async (req, res) => {
         const query = `
             SELECT SUM(TotalPrice) AS TotalSales 
             FROM CUSTOMER_ORDER 
-            WHERE OrderDate >= LAST_DAY(CURRENT_DATE - INTERVAL 2 MONTH) + INTERVAL 1 DAY
-            AND OrderDate < LAST_DAY(CURRENT_DATE - INTERVAL 1 MONTH) + INTERVAL 1 DAY
+            WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
         `;
         const [rows] = await db.query(query);
         res.json(rows[0]);

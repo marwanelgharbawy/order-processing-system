@@ -1,30 +1,128 @@
-async function loadAdminOrders() {
-    const tableBody = document.getElementById('admin-orders-table-body');
-    if (!tableBody) return;
+document.getElementById('nav-orders').addEventListener('click', loadAllCustomerOrders);
+document.getElementById('nav-place_orders').addEventListener('click', loadLowStockBooks);
+document.getElementById('nav-confirm_orders').addEventListener('click', loadRestockRequests);
+
+// Customer orders
+async function loadAllCustomerOrders() {
+    const tbody = document.getElementById('all-orders-body');
+    tbody.innerHTML = '<tr><td colspan="5">Loading...</td></tr>';
+
+    try {
+        const response = await fetch('/admin/customer-orders');
+        if (!response.ok) throw new Error("Failed to fetch sales");
+        const orders = await response.json();
+
+        tbody.innerHTML = '';
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">No sales found.</td></tr>';
+            return;
+        }
+
+        orders.forEach(order => {
+            const dateStr = new Date(order.OrderDate).toLocaleDateString();
+            tbody.innerHTML += `
+                <tr>
+                    <td>#${order.OrderNo}</td>
+                    <td><strong>${order.CustomerUsername}</strong></td>
+                    <td>${dateStr}</td>
+                    <td style="color:green; font-weight:bold;">$${order.TotalPrice}</td>
+                    <td style="font-size:0.85em; color:#555;">${order.Items}</td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5" style="color:red;">Error loading sales log.</td></tr>';
+    }
+}
+
+// Low stock books
+async function loadLowStockBooks() {
+    const tbody = document.getElementById('low-stock-body');
+    tbody.innerHTML = '<tr><td colspan="5">Checking stock...</td></tr>';
+
+    try {
+        const response = await fetch('/books'); // Re-use public books endpoint
+        const books = await response.json();
+        
+        // Filter logic
+        const lowStock = books.filter(b => b.StockQuantity < b.Threshold);
+
+        tbody.innerHTML = '';
+        if (lowStock.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="color:green;">All stock levels are healthy.</td></tr>';
+            return;
+        }
+
+        lowStock.forEach(book => {
+            tbody.innerHTML += `
+                <tr>
+                    <td>${book.ISBN}</td>
+                    <td>${book.Title}</td>
+                    <td style="color:red; font-weight:bold;">${book.StockQuantity}</td>
+                    <td>${book.Threshold}</td>
+                    <td><span style="background:#ffcccb; padding:2px 6px; border-radius:4px; font-size:0.8em;">Low Stock</span></td>
+                </tr>
+            `;
+        });
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5">Error checking inventory.</td></tr>';
+    }
+}
+
+// Restock requests from ADMIN_ORDERS
+async function loadRestockRequests() {
+    const tbody = document.getElementById('restock-orders-body');
+    tbody.innerHTML = '<tr><td colspan="5">Loading requests...</td></tr>';
 
     try {
         const response = await fetch('/admin/orders');
+        if (!response.ok) throw new Error("Failed to fetch");
         const orders = await response.json();
-        
-        tableBody.innerHTML = ''; 
+
+        tbody.innerHTML = '';
+        if (orders.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5">No pending restock requests.</td></tr>';
+            return;
+        }
 
         orders.forEach(order => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>#${order.RestockID}</td>
-                <td>${order.ISBN}</td>
-                <td>${new Date(order.OrderDate).toLocaleDateString()}</td>
-                <td>${order.Quantity}</td>
-                <td><span style="color: ${order.Status === 'Pending' ? 'orange' : 'green'}">${order.Status}</span></td>
-                <td>
-                    ${order.Status === 'Pending' ? 
-                    `<button class="btn-add" style="background:#27ae60; width:auto; padding:5px 10px;">Confirm</button>` : 
-                    `✅`}
-                </td>
+            const isPending = order.Status === 'Pending';
+            const actionBtn = isPending 
+                ? `<button class="btn-add" style="background:#27ae60; padding:5px 10px;" onclick="confirmRestock(${order.RestockID})">Confirm Receipt</button>` 
+                : `<span style="color:gray;">Completed</span>`;
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>#${order.RestockID}</td>
+                    <td>${order.ISBN}</td>
+                    <td>${order.Quantity}</td>
+                    <td style="font-weight:bold; color:${isPending ? 'orange' : 'green'}">${order.Status}</td>
+                    <td>${actionBtn}</td>
+                </tr>
             `;
-            tableBody.appendChild(row);
         });
     } catch (err) {
-        tableBody.innerHTML = '<tr><td colspan="6">Error loading admin orders.</td></tr>';
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5">Error loading requests.</td></tr>';
+    }
+}
+
+// Confirm Restock
+async function confirmRestock(restockId) {
+    if (!confirm("Confirm receipt of goods? Stock will be updated.")) return;
+
+    try {
+        const response = await fetch(`/admin/orders/confirm/${restockId}`, { method: 'POST' });
+        if (response.ok) {
+            alert("Restock confirmed!");
+            loadRestockRequests(); // Refresh table
+        } else {
+            const err = await response.json();
+            alert("Error: " + err.error);
+        }
+    } catch (err) {
+        alert("Connection failed.");
     }
 }
