@@ -218,107 +218,33 @@
         function showSection(sectionId) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
-<<<<<<< HEAD
             document.querySelectorAll('nav a').forEach(l => l.classList.remove('active'));
             const activeTab = document.getElementById('nav-' + sectionId);
             if(activeTab) activeTab.classList.add('active');
-=======
-            
-            // Update sidebar highlighting
-            document.querySelectorAll('nav a').forEach(link => {
-                link.classList.remove('active');
-            });
-            document.getElementById('nav-' + sectionId).classList.add('active');
-            if (sectionId === 'system_reports') {
-        loadTopCustomers(); // refresh kol mara
-        loadTopBooks();
-    }
-        }
-
-        function saveProfile(event) {
-            event.preventDefault();
-            
-            // In a real implementation, you would send this data to your SQL database
-            // using an UPDATE statement for the Customer table.
-            
-            const updatedData = {
-                firstName: document.getElementById('fname').value,
-                lastName: document.getElementById('lname').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                address: document.getElementById('address').value
-            };
-
-            console.log("Saving to database:", updatedData);
-            
-            alert("Profile Updated Successfully!");
-        }
-
-        let cartData = []; // Starts empty
-
-        function renderCart() {
-            const cartTableBody = document.getElementById('cart-items');
-            const grandTotalEl = document.getElementById('grand-total');
-            const cartCountEl = document.getElementById('cart-count');
-            
-            cartTableBody.innerHTML = '';
-            let total = 0;
-            let totalItems = 0;
-
-            cartData.forEach((item, index) => {
-                let subtotal = item.price * item.qty;
-                total += subtotal;
-                totalItems += parseInt(item.qty);
-
-                cartTableBody.innerHTML += `
-                    <tr>
-                        <td><strong>${item.title}</strong></td>
-                        <td>$${item.price.toFixed(2)}</td>
-                        <td><input type="number" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)" style="width:50px;"></td>
-                        <td>$${subtotal.toFixed(2)}</td>
-                        <td><button onclick="removeItem(${index})" style="color:red; background:none; border:none; cursor:pointer;">Remove</button></td>
-                    </tr>`;
-            });
-
-            grandTotalEl.innerText = '$' + total.toFixed(2);
-            cartCountEl.innerText = totalItems;
-        }
-
-        function updateQty(index, newQty) {
-            cartData[index].qty = parseInt(newQty);
-            renderCart();
-        }
-
-        function removeItem(index) {
-            cartData.splice(index, 1);
-            renderCart();
-        }
-
-        function toggleCheckout() {
-            document.getElementById('checkout-section').style.display = 'block';
-        }
-
-        function processPayment(event) {
-            event.preventDefault();
-            alert("Payment Successful! Quantities updated in stock.");
-            cartData = []; // Clear cart after successful checkout
-            renderCart();
-            showSection('orders'); // Redirect to past orders
-        }
-
-        function addToCart(title, price, isbn) {
-            // Check if item already exists
-            const existingItem = cartData.find(item => item.isbn === isbn);
-            if (existingItem) {
-                existingItem.qty++;
-            } else {
-                cartData.push({ title, price, isbn, qty: 1 });
-            }
-            renderCart();
-            alert(title + " added to cart!");
->>>>>>> 2bcca5eef4f9335cb2d1d4c937847e01259e87cc
         }
     </script>
+
+    <div id="order-details-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:1000; justify-content:center; align-items:center;">
+        <div style="background:white; padding:30px; border-radius:8px; width:90%; max-width:600px; max-height:80vh; overflow-y:auto; position:relative;">
+            <button onclick="closeModal()" style="position:absolute; top:10px; right:15px; background:none; border:none; font-size:1.5rem; cursor:pointer;">&times;</button>
+            <h2 id="modal-order-id">Order Details</h2>
+            <hr>
+            <table style="width:100%; margin-top:15px; border-collapse:collapse;">
+                <thead>
+                    <tr style="border-bottom:2px solid #eee;">
+                        <th style="text-align:left; padding:10px;">Book Title</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                    </tr>
+                </thead>
+                <tbody id="order-details-body">
+                    </tbody>
+            </table>
+            <div style="margin-top:20px; text-align:right; font-weight:bold;">
+                Total: <span id="modal-order-total">$0.00</span>
+            </div>
+        </div>
+    </div>
 
     <script src="search.js"></script>
     <script src="cart.js"></script>
