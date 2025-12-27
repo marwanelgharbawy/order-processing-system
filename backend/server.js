@@ -121,7 +121,70 @@ app.get('/admin/orders', async (req, res) => {
     }
 });
 
+// Checking out requires a series of operations that must all succeed
+// If any fail, we need to rollback everything -> transaction
+app.post('/checkout', async (req, res) => {
+    const { username, items } = req.body; 
 
+    // items = array of book objects { isbn, quantity, price }
+
+    // Start transaction -> get connection
+    const connection = await db.getConnection(); 
+
+    try {
+        await connection.beginTransaction();
+
+        // Calculate Total
+        let totalPrice = 0;
+        items.forEach(item => totalPrice += item.price * item.quantity);
+
+        // Create Order Record
+        const [orderResult] = await connection.query(
+            'INSERT INTO CUSTOMER_ORDER (OrderDate, TotalPrice, CustomerUsername) VALUES (NOW(), ?, ?)',
+            [totalPrice, username]
+        );
+        const orderId = orderResult.insertId;
+
+        // Process Items & Deduct Stock
+        for (const item of items) {
+            // Check stock first
+            const [stockRows] = await connection.query(
+                'SELECT StockQuantity FROM BOOK WHERE ISBN = ? FOR UPDATE', 
+                [item.isbn]
+            );
+            
+            // If no stock such thing or insufficient stock
+            if (stockRows.length === 0 || stockRows[0].StockQuantity < item.quantity) {
+                throw new Error(`Insufficient stock for ISBN: ${item.isbn}`);
+            }
+
+            // Sufficient stock exists, proceed
+
+            // Add Order Item
+            await connection.query(
+                'INSERT INTO ORDER_ITEMS (OrderNo, ISBN, Quantity) VALUES (?, ?, ?)',
+                [orderId, item.isbn, item.quantity]
+            );
+
+            // Update Stock (Might trigger something)
+            await connection.query(
+                'UPDATE BOOK SET StockQuantity = StockQuantity - ? WHERE ISBN = ?',
+                [item.quantity, item.isbn]
+            );
+        }
+
+        await connection.commit(); // Confirm transaction
+        console.log(`Order ${orderId} placed successfully for user ${username}.`);
+        res.status(201).json({ message: "Order placed successfully!", orderId });
+
+    } catch (err) {
+        await connection.rollback(); // Undo everything if error
+        console.error("Checkout failed:", err);
+        res.status(400).json({ error: err.message || "Checkout failed" });
+    } finally {
+        connection.release();
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
