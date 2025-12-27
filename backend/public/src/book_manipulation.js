@@ -132,40 +132,72 @@ if (addBookForm) {
 }
 
 async function searchBookToEdit() {
-    const isbn = document.getElementById('editSearchIsbn').value.trim();
-    if (!isbn) return alert("Enter ISBN");
+    const isbnInput = document.getElementById('editSearchIsbn');
+    const isbn = isbnInput.value.trim();
+    
+    if (!isbn) return alert("Please enter an ISBN");
+
+    const tbody = document.getElementById('edit-book-body');
+    tbody.innerHTML = '<tr><td colspan="5">Searching...</td></tr>';
+
     try {
         const response = await fetch(`/books/${isbn}`);
-        if (!response.ok) return alert("Book not found");
+        
+        if (!response.ok) {
+            tbody.innerHTML = '<tr><td colspan="5" style="color:red;">Book not found.</td></tr>';
+            return;
+        }
+
         const book = await response.json();
-        const tbody = document.querySelector('#edit_books table tbody');
+
+        // Render the row with input fields
+        // IMPORTANT: We store the Category in data-category because the Backend requires it on Update
         tbody.innerHTML = `
-            <tr data-isbn="${book.ISBN}" data-category="${book.Category}">
+            <tr data-isbn="${book.ISBN}" data-category="${book.Category || ''}">
                 <td>${book.ISBN}</td>
                 <td><input type="text" value="${book.Title}" class="title-input" style="width:100%"></td>
                 <td><input type="number" value="${book.StockQuantity}" class="stock-input" style="width:60px"></td>
                 <td><input type="number" value="${book.SellingPrice}" class="price-input" style="width:60px"></td>
-                <td><button class="btn-add" onclick="updateBook('${book.ISBN}')">Save</button></td>
-            </tr>`;
-    } catch (err) { alert("Error finding book"); }
+                <td><button class="btn-add" onclick="updateBook('${book.ISBN}')">Save Changes</button></td>
+            </tr>
+        `;
+    } catch (err) {
+        console.error(err);
+        tbody.innerHTML = '<tr><td colspan="5" style="color:red;">Error connecting to server.</td></tr>';
+    }
 }
 
 async function updateBook(isbn) {
+    // 1. Find the specific row using the data attribute we set above
     const row = document.querySelector(`tr[data-isbn="${isbn}"]`);
+    if (!row) return alert("Error: Could not find book row.");
+
+    // 2. Get values from inputs
     const newTitle = row.querySelector('.title-input').value;
     const newStock = row.querySelector('.stock-input').value;
     const newPrice = row.querySelector('.price-input').value;
-    const currentCategory = row.getAttribute('data-category'); 
+    const category = row.getAttribute('data-category'); // Retrieve hidden category
 
     try {
         const response = await fetch(`/books/${isbn}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                title: newTitle, stockQuantity: parseInt(newStock), sellingPrice: parseFloat(newPrice), category: currentCategory
+                title: newTitle,
+                stockQuantity: parseInt(newStock),
+                sellingPrice: parseFloat(newPrice),
+                category: category // REQUIRED by backend
             })
         });
-        if (response.ok) alert("Updated!");
-        else alert("Update failed");
-    } catch (error) { alert("Connection failed"); }
+
+        if (response.ok) {
+            alert("Book updated successfully!");
+        } else {
+            const err = await response.json();
+            alert("Update failed: " + err.error);
+        }
+    } catch (error) {
+        console.error("Error updating book:", error);
+        alert("Failed to connect to server");
+    }
 }
