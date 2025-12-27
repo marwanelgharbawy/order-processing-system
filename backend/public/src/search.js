@@ -44,22 +44,57 @@ async function loadBooks(query = '', type = 'all') {
 function handleShopSearch() {
     const query = document.getElementById('shopSearchInput').value.trim();
     const category = document.getElementById('shopCategorySelect').value;
-    let url = '/books';
 
     if (query) {
-        // Simple logic: If it contains numbers and dashes only, treat as ISBN
         const isIsbn = /^[0-9-]+$/.test(query);
         if (isIsbn) {
-            url = `/books/${query}`;
+            loadBooks(query, 'isbn');
         } else {
-            // Otherwise, search by title (you can add a toggle for Author search later)
-            url = `/books/search/title/${encodeURIComponent(query)}`;
+            // Call the search endpoint properly
+            loadBooksFromSearch(query, 'title');
         }
     } else if (category !== 'All Categories') {
-        url = `/books/category/${encodeURIComponent(category)}`;
+        loadBooks(category, 'category');
+    } else {
+        loadBooks(); // Load all books
     }
+}
 
-    loadBooksFromUrl(url);
+// Add this new function for search endpoints
+async function loadBooksFromSearch(query, searchType) {
+    const container = document.getElementById('book-container');
+    const url = `/books/search/${searchType}/${encodeURIComponent(query)}`;
+
+    try {
+        const response = await fetch(url);
+        const books = await response.json();
+        
+        container.innerHTML = '';
+        
+        if (!books || books.length === 0) {
+            container.innerHTML = '<p>No books found.</p>';
+            return;
+        }
+
+        books.forEach(book => {
+            const card = document.createElement('div');
+            card.className = 'book-card';
+            card.innerHTML = `
+                <div style="height:120px; background:#eee; border-radius:4px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; font-size:12px; color:#999;">
+                    ISBN: ${book.ISBN}
+                </div>
+                <h3>${book.Title}</h3>
+                <p>Publisher: ${book.PublisherName || 'Unknown'}</p>
+                <p><small>Stock: ${book.StockQuantity}</small></p>
+                <div class="price">$${parseFloat(book.SellingPrice).toFixed(2)}</div>
+                <button class="btn-add" onclick="addToCart('${book.ISBN}')">Add to Cart</button>
+            `;
+            container.appendChild(card);
+        });
+    } catch (err) {
+        console.error("Search error:", err);
+        container.innerHTML = '<p>Error searching books.</p>';
+    }
 }
 
 
