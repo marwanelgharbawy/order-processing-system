@@ -50,11 +50,9 @@ jobs:
         run: npm test
       - name: Import fresh schema, sample data and triggers
         working-directory: .
-        env:
-          MYSQL_CONTAINER: ${{ job.services.mysql.id }}
         run: |
           for file in db/schema.sql db/seed.sql db/triggers.sql; do
-            docker exec -i -e MYSQL_PWD="$DB_PASS" "$MYSQL_CONTAINER" mysql -uroot < "$file"
+            MYSQL_PWD="$DB_PASS" mysql --protocol=TCP -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" < "$file"
           done
       - name: Run real MySQL integration checks
         run: npm run test:mysql
