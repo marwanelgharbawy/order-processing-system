@@ -42,34 +42,27 @@ async function loadBooks(query = '', type = 'title', category = 'All Categories'
             const card = document.createElement('div');
             card.className = 'book-card';
             
-            // Escape title to prevent JS errors in the onclick
-            const safeTitle = book.Title ? book.Title.replace(/'/g, "\\'") : "Unknown";
-            
-            // Only show "Add to Cart" if the addToCart function exists (Customer Page)
-            let actionButton = '';
-            if (typeof addToCart === 'function') {
-                actionButton = `
-                    <button class="btn-add" 
-                        onclick="addToCart('${safeTitle}', ${book.SellingPrice}, '${book.ISBN}')">
-                        Add to Cart
-                    </button>
-                `;
-            }
-
             card.innerHTML = `
                 <div style="height:120px; background:#f4f4f4; border-radius:4px; margin-bottom:10px; display:flex; align-items:center; justify-content:center; color:#888;">
-                    ISBN: ${book.ISBN}
+                    ISBN: ${escapeHtml(book.ISBN)}
                 </div>
-                <h3>${book.Title}</h3>
-                <p><strong>Publisher:</strong> ${book.PublisherName || 'Unknown'}</p>
+                <h3>${escapeHtml(book.Title)}</h3>
+                <p><strong>Publisher:</strong> ${escapeHtml(book.PublisherName || 'Unknown')}</p>
                 <div class="price" style="font-size: 1.2em; color: #27ae60; font-weight: bold; margin: 10px 0;">
                     $${parseFloat(book.SellingPrice).toFixed(2)}
                 </div>
                 <p style="font-size: 0.9em; color: ${book.StockQuantity > 0 ? 'green' : 'red'}; margin-bottom:10px;">
                     ${book.StockQuantity > 0 ? `In Stock: ${book.StockQuantity}` : 'Out of Stock'}
                 </p>
-                ${actionButton}
+
             `;
+            if (typeof addToCart === 'function') {
+                const button = document.createElement('button');
+                button.className = 'btn-add';
+                button.textContent = 'Add to Cart';
+                button.addEventListener('click', () => addToCart(book.Title, book.SellingPrice, book.ISBN));
+                card.appendChild(button);
+            }
             container.appendChild(card);
         });
 
@@ -155,16 +148,17 @@ async function searchBookToEdit() {
         const book = await response.json();
 
         // Render the row with input fields
-        // IMPORTANT: We store the Category in data-category because the Backend requires it on Update
+        // Keep the selected book details in the row.
         tbody.innerHTML = `
-            <tr data-isbn="${book.ISBN}" data-category="${book.Category || ''}">
-                <td>${book.ISBN}</td>
-                <td><input type="text" value="${book.Title}" class="title-input" style="width:100%"></td>
+            <tr data-isbn="${escapeHtml(book.ISBN)}" data-category="${escapeHtml(book.Category || '')}">
+                <td>${escapeHtml(book.ISBN)}</td>
+                <td><input type="text" value="${escapeHtml(book.Title)}" class="title-input" style="width:100%"></td>
                 <td><input type="number" value="${book.StockQuantity}" class="stock-input" style="width:60px"></td>
                 <td><input type="number" value="${book.SellingPrice}" class="price-input" style="width:60px"></td>
-                <td><button class="btn-add" onclick="updateBook('${book.ISBN}')">Save Changes</button></td>
+                <td><button class="btn-add" id="save-book">Save Changes</button></td>
             </tr>
         `;
+        document.getElementById('save-book').addEventListener('click', () => updateBook(book.ISBN));
     } catch (err) {
         console.error(err);
         tbody.innerHTML = '<tr><td colspan="5" style="color:red;">Error connecting to server.</td></tr>';
@@ -173,14 +167,14 @@ async function searchBookToEdit() {
 
 async function updateBook(isbn) {
     // 1. Find the specific row using the data attribute we set above
-    const row = document.querySelector(`tr[data-isbn="${isbn}"]`);
+    const row = document.querySelector('#edit-book-body tr');
     if (!row) return alert("Error: Could not find book row.");
 
     // 2. Get values from inputs
     const newTitle = row.querySelector('.title-input').value;
     const newStock = row.querySelector('.stock-input').value;
     const newPrice = row.querySelector('.price-input').value;
-    const category = row.getAttribute('data-category'); // Retrieve hidden category
+    const category = row.getAttribute('data-category');
 
     try {
         const response = await fetch(`/books/${isbn}`, {
@@ -190,7 +184,7 @@ async function updateBook(isbn) {
                 title: newTitle,
                 stockQuantity: parseInt(newStock),
                 sellingPrice: parseFloat(newPrice),
-                category: category // REQUIRED by backend
+                category: category
             })
         });
 

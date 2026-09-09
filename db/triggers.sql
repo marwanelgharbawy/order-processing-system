@@ -26,7 +26,8 @@ FOR EACH ROW
 BEGIN
     -- If stock was >= threshold and new < threshold
     -- new < threshold is not sufficient
-    IF OLD.StockQuantity >= OLD.Threshold AND NEW.StockQuantity < NEW.Threshold THEN
+    IF OLD.StockQuantity >= OLD.Threshold AND NEW.StockQuantity < NEW.Threshold
+       AND NOT EXISTS (SELECT 1 FROM ADMIN_ORDER WHERE ISBN = NEW.ISBN AND Status = 'Pending') THEN
         INSERT INTO ADMIN_ORDER (OrderDate, Quantity, Status, ISBN)
         VALUES (NOW(), 10, 'Pending', NEW.ISBN);
     END IF;

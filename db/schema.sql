@@ -10,9 +10,9 @@ CREATE TABLE BOOK (
     Title VARCHAR(255) NOT NULL,
     Category VARCHAR(50),
     PublicationYear INT,
-    SellingPrice DECIMAL(10, 2) NOT NULL,
-    Threshold INT DEFAULT 5,
-    StockQuantity INT DEFAULT 0,
+    SellingPrice DECIMAL(10, 2) NOT NULL CHECK (SellingPrice >= 0),
+    Threshold INT NOT NULL DEFAULT 5 CHECK (Threshold >= 0),
+    StockQuantity INT NOT NULL DEFAULT 0 CHECK (StockQuantity >= 0),
     PublisherName VARCHAR(100),
     CONSTRAINT chk_category CHECK (Category IN ('Science', 'Art', 'Religion', 'History', 'Geography')),
     FOREIGN KEY (PublisherName) REFERENCES PUBLISHER(Name) ON UPDATE CASCADE
@@ -21,6 +21,8 @@ CREATE TABLE BOOK (
 CREATE TABLE CUSTOMER (
     Username VARCHAR(50) PRIMARY KEY,
     Password VARCHAR(255) NOT NULL,
+    Role VARCHAR(10) NOT NULL DEFAULT 'customer',
+    CONSTRAINT chk_role CHECK (Role IN ('customer', 'admin')),
     FirstName VARCHAR(50),
     LastName VARCHAR(50),
     Email VARCHAR(100) UNIQUE,
@@ -39,7 +41,8 @@ CREATE TABLE CUSTOMER_ORDER (
 CREATE TABLE ORDER_ITEMS (
     OrderNo INT,
     ISBN VARCHAR(20),
-    Quantity INT,
+    Quantity INT NOT NULL CHECK (Quantity > 0),
+    UnitPrice DECIMAL(10, 2) NOT NULL CHECK (UnitPrice >= 0),
     PRIMARY KEY (OrderNo, ISBN),
     FOREIGN KEY (OrderNo) REFERENCES CUSTOMER_ORDER(OrderNo) ON DELETE CASCADE,
     FOREIGN KEY (ISBN) REFERENCES BOOK(ISBN) ON DELETE CASCADE
@@ -48,7 +51,7 @@ CREATE TABLE ORDER_ITEMS (
 CREATE TABLE ADMIN_ORDER (
     RestockID INT AUTO_INCREMENT PRIMARY KEY,
     OrderDate DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Quantity INT NOT NULL,
+    Quantity INT NOT NULL CHECK (Quantity > 0),
     Status VARCHAR(20) DEFAULT 'Pending',
     ISBN VARCHAR(20),
     CONSTRAINT chk_status CHECK (Status IN ('Pending', 'Confirmed')),

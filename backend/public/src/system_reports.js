@@ -62,7 +62,7 @@ async function loadTopCustomers() {
 
         customers.forEach(c => {
             const li = document.createElement('li');
-            li.innerHTML = `<strong>${c.CustomerUsername}</strong> - Spent: $${Number(c.TotalSpent).toFixed(2)}`;
+            li.innerHTML = `<strong>${escapeHtml(c.CustomerUsername)}</strong> - Spent: $${Number(c.TotalSpent).toFixed(2)}`;
             list.appendChild(li);
         });
     } catch (err) {
@@ -89,7 +89,7 @@ async function loadTopBooks() {
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td>${index + 1}</td>
-                <td>${book.Title} <br><small>${book.ISBN}</small></td>
+                <td>${escapeHtml(book.Title)} <br><small>${escapeHtml(book.ISBN)}</small></td>
                 <td>${book.TotalCopiesSold} units</td>
             `;
             tableBody.appendChild(row);
@@ -104,37 +104,10 @@ async function getReplenishmentReport() {
     const isbn = document.getElementById('replenishIsbn').value;
     if (!isbn) return alert("Enter an ISBN");
 
-    const response = await fetch(`/admin/reports/replenishment/${isbn}`);
+    const response = await fetch(`/admin/reports/replenishment/${encodeURIComponent(isbn)}`);
     const data = await response.json();
     
     document.getElementById('replenishResult').innerHTML = 
-        `Times Restocked: <strong>${data.TimesOrdered}</strong><br>
-         Total Qty Received: <strong>${data.TotalQuantityRequested || 0}</strong>`;
-}
-
-
-// Confirm Supply Order (Restock)
-// This should be called by the "Confirm Receipt" buttons
-async function confirmRestock(restockId) {
-    if (!confirm("Are you sure you want to confirm receipt? This will update book stock.")) return;
-
-    try {
-        // Hits: app.post('/admin/orders/confirm/:restockId')
-        const response = await fetch(`/admin/orders/confirm/${restockId}`, {
-            method: 'POST'
-        });
-
-        const result = await response.json();
-
-        if (response.ok) {
-            alert(result.message);
-            // Refresh the admin orders table if you have a function for it
-            if (typeof loadAdminOrders === 'function') 
-                loadAdminOrders();
-        } else {
-            alert("Error: " + result.error);
-        }
-    } catch (err) {
-        console.error("Confirmation failed:", err);
-    }
+        `Requests placed: <strong>${data.TimesOrdered}</strong><br>
+         Total quantity requested: <strong>${data.TotalQuantityRequested || 0}</strong>`;
 }

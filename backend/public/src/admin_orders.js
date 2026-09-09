@@ -23,10 +23,10 @@ async function loadAllCustomerOrders() {
             tbody.innerHTML += `
                 <tr>
                     <td>#${order.OrderNo}</td>
-                    <td><strong>${order.CustomerUsername}</strong></td>
+                    <td><strong>${escapeHtml(order.CustomerUsername)}</strong></td>
                     <td>${dateStr}</td>
                     <td style="color:green; font-weight:bold;">$${order.TotalPrice}</td>
-                    <td style="font-size:0.85em; color:#555;">${order.Items}</td>
+                    <td style="font-size:0.85em; color:#555;">${escapeHtml(order.Items)}</td>
                 </tr>
             `;
         });
@@ -42,7 +42,7 @@ async function loadLowStockBooks() {
     tbody.innerHTML = '<tr><td colspan="5">Checking stock...</td></tr>';
 
     try {
-        const response = await fetch('/books'); // Re-use public books endpoint
+        const response = await fetch('/books/low-stock');
         const books = await response.json();
         
         // Filter logic
@@ -57,13 +57,16 @@ async function loadLowStockBooks() {
         lowStock.forEach(book => {
             tbody.innerHTML += `
                 <tr>
-                    <td>${book.ISBN}</td>
-                    <td>${book.Title}</td>
+                    <td>${escapeHtml(book.ISBN)}</td>
+                    <td>${escapeHtml(book.Title)}</td>
                     <td style="color:red; font-weight:bold;">${book.StockQuantity}</td>
                     <td>${book.Threshold}</td>
-                    <td><span style="background:#ffcccb; padding:2px 6px; border-radius:4px; font-size:0.8em;">Low Stock</span></td>
+                    <td><button class="btn-add" data-restock>Request 10 copies</button></td>
                 </tr>
             `;
+        });
+        tbody.querySelectorAll('[data-restock]').forEach((button, index) => {
+            button.addEventListener('click', () => placeOrder(lowStock[index].ISBN, 10));
         });
     } catch (err) {
         console.error(err);
@@ -96,7 +99,7 @@ async function loadRestockRequests() {
             tbody.innerHTML += `
                 <tr>
                     <td>#${order.RestockID}</td>
-                    <td>${order.ISBN}</td>
+                    <td>${escapeHtml(order.ISBN)}</td>
                     <td>${order.Quantity}</td>
                     <td style="font-weight:bold; color:${isPending ? 'orange' : 'green'}">${order.Status}</td>
                     <td>${actionBtn}</td>
@@ -125,4 +128,16 @@ async function confirmRestock(restockId) {
     } catch (err) {
         alert("Connection failed.");
     }
+}
+async function placeOrder(isbn, quantity) {
+    if (!confirm(`Request ${quantity} copies?`)) return;
+    try {
+        const response = await fetch('/admin/orders/place', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ isbn, quantity })
+        });
+        const result = await response.json();
+        alert(result.message || result.error);
+        if (response.ok) loadRestockRequests();
+    } catch (err) { alert('Could not record restock request'); }
 }

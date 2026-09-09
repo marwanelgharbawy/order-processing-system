@@ -11,7 +11,7 @@ async function loadOrderHistory() {
     tbody.innerHTML = '<tr><td colspan="4">Loading orders...</td></tr>';
 
     try {
-        const response = await fetch(`/orders/history/${username}`);
+        const response = await fetch(`/orders/history/${encodeURIComponent(username)}`);
         
         if (!response.ok) {
             throw new Error("Failed to fetch orders");
@@ -32,7 +32,7 @@ async function loadOrderHistory() {
 
             // Create a summary of items (e.g., "Java Book, History Book...")
             const itemsSummary = order.items.map(item => 
-                `${item.title} (x${item.quantity})`
+                `${escapeHtml(item.title)} (x${item.quantity})`
             ).join('<br>');
 
             const row = document.createElement('tr');

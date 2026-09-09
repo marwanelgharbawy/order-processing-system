@@ -46,16 +46,9 @@ async function saveProfile(event) {
         if (response.ok) {
             alert("Profile updated successfully!");
             
-            // Update LocalStorage with new data so it persists on refresh
-            const currentUser = JSON.parse(localStorage.getItem('userInfo'));
-            const mergedUser = { ...currentUser, 
-                FirstName: updatedData.firstName,
-                LastName: updatedData.lastName,
-                Email: updatedData.email,
-                Phone: updatedData.phone,
-                ShippingAddress: updatedData.shippingAddress
-            };
-            localStorage.setItem('userInfo', JSON.stringify(mergedUser));
+            const result = await response.json();
+            localStorage.setItem('userInfo', JSON.stringify(result.user));
+            document.getElementById('password').value = '';
 
         } else {
             const err = await response.json();
@@ -65,10 +58,4 @@ async function saveProfile(event) {
         console.error("Profile save error:", error);
         alert("Failed to connect to server.");
     }
-}
-
-// 3. Logout Helper
-function handleLogout() {
-    localStorage.clear();
-    window.location.href = 'login.html';
 }

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script src="src/session.js" defer></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="admin.css">
@@ -18,7 +19,7 @@
             <a onclick="showSection('confirm_orders')" id="nav-confirm_orders">✅ Confirm Orders</a>
             <a onclick="showSection('system_reports')" id="nav-system_reports">📊 System Reports</a>
         </nav>
-        <a href="login.html" class="logout" onclick="localStorage.clear()" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <a href="login.html" class="logout" onclick="event.preventDefault(); handleLogout()" style="text-decoration: none; color: inherit; cursor: pointer;">
             ✖ Logout
         </a>
     </aside>
@@ -199,12 +200,9 @@
         </section>
     </main>
 
-    <script src="src/reports.js"></script>
-    <script src="src/dashboard.js"></script>
     <script src="src/admin_orders.js"></script>
     <script src="src/book_manipulation.js"></script>
     <script src="src/system_reports.js"></script>
-    <script src="src/place_orders.js"></script>
     <script>
         function showSection(sectionId) {
             // Hide all sections

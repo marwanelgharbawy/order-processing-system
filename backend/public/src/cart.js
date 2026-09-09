@@ -40,7 +40,7 @@ function renderCart() {
 
         cartTableBody.innerHTML += `
             <tr>
-                <td><div style="font-weight:bold;">${item.title}</div><small style="color:#888;">ISBN: ${item.isbn}</small></td>
+                <td><div style="font-weight:bold;">${escapeHtml(item.title)}</div><small style="color:#888;">ISBN: ${escapeHtml(item.isbn)}</small></td>
                 <td>$${item.price.toFixed(2)}</td>
                 <td><input type="number" value="${item.qty}" min="1" onchange="updateQty(${index}, this.value)" style="width:50px; padding:5px;"></td>
                 <td>$${subtotal.toFixed(2)}</td>
@@ -83,7 +83,7 @@ function toggleCheckout() {
     if(section.style.display === 'block') section.scrollIntoView({ behavior: 'smooth' });
 }
 
-async function processPayment(event) {
+async function placeCustomerOrder(event) {
     event.preventDefault();
     if (cartData.length === 0) return alert("Cart is empty");
 
@@ -94,17 +94,8 @@ async function processPayment(event) {
         return;
     }
 
-    const cardNum = document.querySelector('#checkout-section input[type="text"]').value;
-    const expiryInput = document.querySelector('#checkout-section input[type="month"]').value;
-    if (!expiryInput) return alert("Enter expiry date");
-    const [year, month] = expiryInput.split('-');
-    const formattedExpiry = `${month}/${year.slice(2)}`; 
-
     const orderData = {
-        username: username,
-        creditCard: cardNum,
-        expiryDate: formattedExpiry,
-        items: cartData.map(item => ({ isbn: item.isbn, quantity: item.qty, price: item.price }))
+        items: cartData.map(item => ({ isbn: item.isbn, quantity: item.qty }))
     };
 
     try {

@@ -29,21 +29,4 @@ INSERT INTO PUBLISHER_ADDRESSES (PublisherName, Address) VALUES
 ('HarperCollins', '195 Broadway, New York, NY'),
 ('OReilly Media', '1005 Gravenstein Hwy N, Sebastopol, CA');
 
-INSERT INTO CUSTOMER (Username, Password, FirstName, LastName, Email, Phone, ShippingAddress) VALUES 
-('maro_db', '01012001', 'Marwan', 'G.', 'maro@gmail.com', '01567890123', 'Alexandria, Egypt'),
-('rofa_db', '02022002', 'Rofa', 'W.', 'rofa@gmail.com', '01123456789', 'Cairo, Egypt'),
-('kassar_frontend', '04042004', 'M.', 'Kassar', 'kassar@gmail.com', '01234567890', 'Giza, Egypt'),
-('helmy_frontend', '05052005', 'Y.', 'Helmy', 'helmy@gmail.com', '01000000000', 'Mansoura, Egypt');
-
-INSERT INTO CUSTOMER_ORDER (OrderDate, TotalPrice, CustomerUsername) VALUES 
-('2025-12-25 10:00:00', 67.00, 'maro_db'),
-('2025-12-26 14:30:00', 10.50, 'rofa_db');
-
-INSERT INTO ORDER_ITEMS (OrderNo, ISBN, Quantity) VALUES 
-(1, '978-0134685991', 1),
-(1, '978-1400079179', 1),
-(2, '978-0743273565', 1);
-
-INSERT INTO ADMIN_ORDER (Quantity, Status, ISBN) VALUES 
-(50, 'Pending', '978-0134685991'),
-(20, 'Received', '978-1400079179');
+-- Create customer/admin accounts with npm run create-user.

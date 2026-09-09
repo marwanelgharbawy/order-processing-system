@@ -3,17 +3,40 @@ const express = require('express');
 const db = require('./db'); 
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+const session = require('express-session');
+const path = require('path');
+const crypto = require('crypto');
+const { hashPassword, checkPassword, publicUser, requireLogin, requireAdmin, validPassword } = require('./auth');
 
 // Middleware to parse JSON bodies and URL-encoded bodies
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Use files in public folder
-app.use(express.static('public'));
+app.use(session({
+    secret: process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex'),
+    resave: false,
+    saveUninitialized: false,
+    cookie: { httpOnly: true, sameSite: 'strict', maxAge: 8 * 60 * 60 * 1000 }
+}));
+
+// Reject browser writes coming from another website.
+app.use((req, res, next) => {
+    if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method) && req.headers.origin &&
+        req.headers.origin !== `${req.protocol}://${req.get('host')}`) {
+        return res.status(403).json({ error: 'Requests must come from this website' });
+    }
+    next();
+});
+
+app.use('/admin', requireAdmin);
+app.get('/admin_dashboard.html', requireAdmin);
+app.get('/dashboard.html', requireLogin);
+app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/', (req, res) => {
-    res.send("Backend server is running");
+    res.redirect('/login.html');
 });
 
 // Test books endpoint
@@ -29,6 +52,39 @@ app.get('/books', async (req, res) => {
 });
 
 // Searching
+
+// List books needing stock before the generic ISBN route.
+app.get('/books/low-stock', requireAdmin, async (req, res) => {
+    const [rows] = await db.query('SELECT *, 10 AS DefaultOrderQty FROM BOOK WHERE StockQuantity < Threshold');
+    res.json(rows);
+});
+
+app.post('/admin/orders/place', async (req, res) => {
+    const { isbn, quantity } = req.body;
+    if (typeof isbn !== 'string' || !isbn.trim() || !Number.isInteger(quantity) || quantity < 1 || quantity > 100000) {
+        return res.status(400).json({ error: 'Invalid ISBN or quantity' });
+    }
+    const connection = await db.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [books] = await connection.query('SELECT ISBN FROM BOOK WHERE ISBN = ? FOR UPDATE', [isbn]);
+        if (!books.length) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Book not found' });
+        }
+        const [pending] = await connection.query("SELECT RestockID FROM ADMIN_ORDER WHERE ISBN = ? AND Status = 'Pending'", [isbn]);
+        if (pending.length) {
+            await connection.rollback();
+            return res.status(409).json({ error: 'A pending restock request already exists' });
+        }
+        await connection.query("INSERT INTO ADMIN_ORDER (OrderDate, Quantity, Status, ISBN) VALUES (NOW(), ?, 'Pending', ?)", [quantity, isbn]);
+        await connection.commit();
+        res.status(201).json({ message: 'Restock request recorded' });
+    } catch (err) {
+        await connection.rollback();
+        res.status(500).json({ error: 'Could not place restock request' });
+    } finally { connection.release(); }
+});
 
 // Search by ISBN
 // req.params: parameters from the URL
@@ -116,86 +172,89 @@ app.get('/books/search/publisher/:publisher', async (req, res) => {
 }); 
 
 // User registration
-// POST request to /register with JSON body
-// Get data from req.body
 app.post('/register', async (req, res) => {
     const { username, password, firstName, lastName, email, phone, address } = req.body;
-
+    if (!/^[a-zA-Z0-9_]{3,50}$/.test(username || '') || !validPassword(password) ||
+        typeof email !== 'string' || email.length > 100 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ error: 'Use a valid username, email and a password of 8-128 characters' });
+    }
     try {
         await db.query(
-            `INSERT INTO CUSTOMER (Username, Password, FirstName, LastName, Email, Phone, ShippingAddress) 
+            `INSERT INTO CUSTOMER (Username, Password, FirstName, LastName, Email, Phone, ShippingAddress)
              VALUES (?, ?, ?, ?, ?, ?, ?)`,
-            [username, password, firstName, lastName, email, phone, address]
+            [username, await hashPassword(password), firstName || '', lastName || '', email, phone || '', address || '']
         );
-        res.status(201).json({ message: "User registered successfully" });
-        console.log("New user registered:", username);
+        res.status(201).json({ message: 'User registered successfully' });
     } catch (err) {
-        // Check for duplicate entry error
-        if (err.code === 'ER_DUP_ENTRY') {
-            res.status(400).json({ error: "Username or Email already exists" });
-            console.log("Registration failed. Duplicate entry:", username);
-        } else {
-            console.error(err);
-            res.status(500).json({ error: "Registration failed" });
-        }
+        res.status(err.code === 'ER_DUP_ENTRY' ? 400 : 500).json({ error: 'Registration failed; check your details' });
     }
 });
 
-// User login
-app.post('/login', async (req, res) => {
+app.post('/login', async (req, res, next) => {
     const { username, password } = req.body;
-    
-    try {
-        const [rows] = await db.query(
-            'SELECT * FROM CUSTOMER WHERE Username = ? AND Password = ?', 
-            [username, password]
-        );
-
-        if (rows.length > 0) {
-            res.json({ message: "Login successful", user: rows[0] });
-            console.log("User logged in:", username);
-        } else {
-            res.status(401).json({ error: "Invalid username or password" });
-            console.log("Login failed for user:", username);
-        }
-    } catch (err) {
-        res.status(500).json({ error: "Login failed" });
+    if (typeof username !== 'string' || typeof password !== 'string' || !password.length || password.length > 128) {
+        return res.status(401).json({ error: 'Invalid username or password' });
     }
+    try {
+        const [rows] = await db.query('SELECT * FROM CUSTOMER WHERE Username = ?', [username]);
+        if (!rows.length || !await checkPassword(password, rows[0].Password)) {
+            return res.status(401).json({ error: 'Invalid username or password' });
+        }
+        // Create a fresh session after login.
+        req.session.regenerate(err => {
+            if (err) return next(err);
+            req.session.user = publicUser(rows[0]);
+            req.session.save(err => {
+                if (err) return next(err);
+                res.json({ message: 'Login successful', user: req.session.user });
+            });
+        });
+    } catch (err) { next(err); }
 });
 
-// Edit user profile
-// Updates password, names, phone, address
-app.put('/customer/:username', async (req, res) => {
-    // We expect the username to be passed in the body
-    const { username } = req.params;
-    const { password, firstName, lastName, phone, shippingAddress } = req.body;
+app.get('/me', requireLogin, (req, res) => res.json({ user: req.session.user }));
 
+app.post('/logout', (req, res, next) => {
+    req.session.destroy(err => {
+        if (err) return next(err);
+        res.clearCookie('connect.sid');
+        res.json({ message: 'Logged out' });
+    });
+});
+
+// Update only the customer belonging to the current session.
+app.put('/customer/profile', requireLogin, async (req, res) => {
+    const username = req.session.user.Username;
+    const { password, firstName, lastName, email, phone, shippingAddress } = req.body;
+    if (typeof email !== 'string' || email.length > 100 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) ||
+        (password !== undefined && password !== '' && !validPassword(password))) {
+        return res.status(400).json({ error: 'Invalid email or password' });
+    }
     try {
-
-        const query = `
-            UPDATE CUSTOMER 
-            SET Password = ?, FirstName = ?, LastName = ?, Phone = ?, ShippingAddress = ? 
-            WHERE Username = ?
-        `;
-
-        const [result] = await db.query(query, [password, firstName, lastName, phone, shippingAddress, username]);
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        console.log(`Customer profile updated: ${username}`);
-        res.json({ message: "Profile updated successfully" });
+        const passwordHash = password ? await hashPassword(password) : null;
+        await db.query(`UPDATE CUSTOMER SET Password = COALESCE(?, Password), FirstName = ?,
+            LastName = ?, Email = ?, Phone = ?, ShippingAddress = ? WHERE Username = ?`,
+            [passwordHash, firstName || '', lastName || '', email, phone || '', shippingAddress || '', username]);
+        const [rows] = await db.query('SELECT * FROM CUSTOMER WHERE Username = ?', [username]);
+        if (!rows.length) return res.status(404).json({ error: 'User not found' });
+        req.session.user = publicUser(rows[0]);
+        res.json({ message: 'Profile updated successfully', user: req.session.user });
     } catch (err) {
-        console.error("Profile update failed:", err);
-        res.status(500).json({ error: "Failed to update profile" });
+        res.status(err.code === 'ER_DUP_ENTRY' ? 400 : 500).json({ error: 'Profile update failed' });
     }
 });
 
 // Add book (Admin)
-app.post('/books', async (req, res) => {
+app.post('/books', requireAdmin, async (req, res) => {
     const { isbn, title, category, publicationYear, sellingPrice, threshold, publisherName, stockQuantity, authors } = req.body;
 
+    if (!validBook(title, sellingPrice, stockQuantity) || typeof isbn !== 'string' || !isbn.trim() || isbn.length > 20 ||
+        !Number.isInteger(threshold) || threshold < 0 || !Number.isInteger(publicationYear) ||
+        !['Science', 'Art', 'Religion', 'History', 'Geography'].includes(category) ||
+        typeof publisherName !== 'string' || !Array.isArray(authors) ||
+        authors.some(author => typeof author !== 'string' || !author.trim() || author.length > 100)) {
+        return res.status(400).json({ error: 'Invalid book details' });
+    }
     console.log("Adding new book:", title);
 
     const connection = await db.getConnection();
@@ -238,9 +297,12 @@ app.post('/books', async (req, res) => {
 });
 
 // Modify book details (Admin)
-app.put('/books/:isbn', async (req, res) => {
+app.put('/books/:isbn', requireAdmin, async (req, res) => {
     const { isbn } = req.params;
     const { title, sellingPrice, stockQuantity} = req.body;
+    if (!validBook(title, sellingPrice, stockQuantity)) {
+        return res.status(400).json({ error: 'Invalid title, price or stock quantity' });
+    }
 
     try {
         // execute the update
@@ -288,7 +350,7 @@ app.get('/admin/customer-orders', async (req, res) => {
             FROM CUSTOMER_ORDER O
             JOIN ORDER_ITEMS OI ON O.OrderNo = OI.OrderNo
             JOIN BOOK B ON OI.ISBN = B.ISBN
-            GROUP BY O.OrderNo
+            GROUP BY O.OrderNo, O.OrderDate, O.TotalPrice, O.CustomerUsername
             ORDER BY O.OrderDate DESC
         `;
         const [rows] = await db.query(query);
@@ -299,77 +361,61 @@ app.get('/admin/customer-orders', async (req, res) => {
     }
 });
 
-// Customer Orders
-// Checking out requires a series of operations that must all succeed
-// If any fail, we need to rollback everything -> transaction
-app.post('/checkout', async (req, res) => {
-    const { username, items } = req.body; 
+// Checkout is a simulated order, with prices taken from the database.
+app.post('/checkout', requireLogin, async (req, res) => {
+    const { items } = req.body;
+    const username = req.session.user.Username;
+    if (!Array.isArray(items) || items.length === 0 || items.length > 100 || items.some(item =>
+        !item || typeof item.isbn !== 'string' || !item.isbn.trim() || item.isbn.length > 20 ||
+        !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100000) ||
+        new Set(items.map(item => item.isbn)).size !== items.length) {
+        return res.status(400).json({ error: 'Use a nonempty cart with unique books and positive whole quantities' });
+    }
 
-    // items = array of book objects { isbn, quantity, price }
-
-    // Start transaction -> get connection
-    const connection = await db.getConnection(); 
-
+    const connection = await db.getConnection();
     try {
         await connection.beginTransaction();
-
-        // Calculate Total
-        let totalPrice = 0;
-        items.forEach(item => totalPrice += item.price * item.quantity);
-
-        // Create Order Record
-        const [orderResult] = await connection.query(
-            'INSERT INTO CUSTOMER_ORDER (OrderDate, TotalPrice, CustomerUsername) VALUES (NOW(), ?, ?)',
-            [totalPrice, username]
-        );
-        const orderId = orderResult.insertId;
-
-        // Process Items & Deduct Stock
-        for (const item of items) {
-            // Check stock first
-            const [stockRows] = await connection.query(
-                'SELECT StockQuantity FROM BOOK WHERE ISBN = ? FOR UPDATE', 
-                [item.isbn]
-            );
-            
-            // If no stock such thing or insufficient stock
-            if (stockRows.length === 0 || stockRows[0].StockQuantity < item.quantity) {
+        let totalCents = 0;
+        const orderItems = [];
+        // Lock books in a stable order when multiple customers check out together.
+        for (const item of [...items].sort((a, b) => a.isbn.localeCompare(b.isbn))) {
+            const [books] = await connection.query(
+                'SELECT StockQuantity, SellingPrice FROM BOOK WHERE ISBN = ? FOR UPDATE', [item.isbn]);
+            if (!books.length || books[0].StockQuantity < item.quantity) {
                 throw new Error(`Insufficient stock for ISBN: ${item.isbn}`);
             }
-
-            // Sufficient stock exists, proceed
-
-            // Add Order Item
-            await connection.query(
-                'INSERT INTO ORDER_ITEMS (OrderNo, ISBN, Quantity) VALUES (?, ?, ?)',
-                [orderId, item.isbn, item.quantity]
-            );
-
-            // Update Stock (Might trigger something)
-            await connection.query(
-                'UPDATE BOOK SET StockQuantity = StockQuantity - ? WHERE ISBN = ?',
-                [item.quantity, item.isbn]
-            );
+            const priceCents = Math.round(Number(books[0].SellingPrice) * 100);
+            totalCents += priceCents * item.quantity;
+            if (!Number.isSafeInteger(totalCents) || totalCents > 9999999999) {
+                throw new Error('Order total is too large');
+            }
+            orderItems.push({ ...item, price: (priceCents / 100).toFixed(2) });
         }
-
-        await connection.commit(); // Confirm transaction
-        console.log(`Order ${orderId} placed successfully for user ${username}.`);
-        res.status(201).json({ message: "Order placed successfully!", orderId });
-
+        const [order] = await connection.query(
+            'INSERT INTO CUSTOMER_ORDER (OrderDate, TotalPrice, CustomerUsername) VALUES (NOW(), ?, ?)',
+            [(totalCents / 100).toFixed(2), username]);
+        for (const item of orderItems) {
+            await connection.query('INSERT INTO ORDER_ITEMS (OrderNo, ISBN, Quantity, UnitPrice) VALUES (?, ?, ?, ?)',
+                [order.insertId, item.isbn, item.quantity, item.price]);
+            await connection.query('UPDATE BOOK SET StockQuantity = StockQuantity - ? WHERE ISBN = ?',
+                [item.quantity, item.isbn]);
+        }
+        await connection.commit();
+        res.status(201).json({ message: 'Order placed successfully', orderId: order.insertId });
     } catch (err) {
-        await connection.rollback(); // Undo everything if error
-        console.error("Checkout failed:", err);
-        res.status(400).json({ error: err.message || "Checkout failed" });
-    } finally {
-        connection.release();
-    }
+        await connection.rollback();
+        res.status(400).json({ error: err.sqlMessage ? 'Order could not be saved' : err.message });
+    } finally { connection.release(); }
 });
 
 // -- Might need verification --
 // View past orders (Customer)
 // This retrieves all orders for a specific user with detailed book information
-app.get('/orders/history/:username', async (req, res) => {
+app.get('/orders/history/:username', requireLogin, async (req, res) => {
     const { username } = req.params;
+    if (username !== req.session.user.Username) {
+        return res.status(403).json({ error: 'You can only view your own orders' });
+    }
 
     try {
         const query = `
@@ -380,7 +426,7 @@ app.get('/orders/history/:username', async (req, res) => {
                 OI.Quantity, 
                 B.ISBN, 
                 B.Title AS BookName, 
-                B.SellingPrice 
+                OI.UnitPrice AS SellingPrice
             FROM CUSTOMER_ORDER O
             JOIN ORDER_ITEMS OI ON O.OrderNo = OI.OrderNo
             JOIN BOOK B ON OI.ISBN = B.ISBN
@@ -487,9 +533,10 @@ app.post('/admin/orders/confirm/:restockId', async (req, res) => {
 app.get('/admin/reports/sales/previous-month', async (req, res) => {
     try {
         const query = `
-            SELECT SUM(TotalPrice) AS TotalSales 
+            SELECT COALESCE(SUM(TotalPrice), 0) AS TotalSales
             FROM CUSTOMER_ORDER 
-            WHERE OrderDate >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+            WHERE OrderDate >= DATE_FORMAT(CURRENT_DATE - INTERVAL 1 MONTH, '%Y-%m-01')
+              AND OrderDate < DATE_FORMAT(CURRENT_DATE, '%Y-%m-01')
         `;
         const [rows] = await db.query(query);
         res.json(rows[0]);
@@ -502,10 +549,14 @@ app.get('/admin/reports/sales/previous-month', async (req, res) => {
 // Total sales for books on a certain day
 // param: /admin/reports/sales/day?date=2025-12-25
 app.get('/admin/reports/sales/day', async (req, res) => {
-    const { date } = req.query; 
+    const { date } = req.query;
+    if (typeof date !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+        !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) {
+        return res.status(400).json({ error: 'Use a valid date in YYYY-MM-DD format' });
+    }
     try {
         const query = `
-            SELECT SUM(TotalPrice) AS TotalSales 
+            SELECT COALESCE(SUM(TotalPrice), 0) AS TotalSales
             FROM CUSTOMER_ORDER 
             WHERE DATE(OrderDate) = ?
         `;
@@ -543,7 +594,7 @@ app.get('/admin/reports/top-books', async (req, res) => {
             JOIN CUSTOMER_ORDER CO ON OI.OrderNo = CO.OrderNo
             JOIN BOOK B ON OI.ISBN = B.ISBN
             WHERE CO.OrderDate >= DATE_SUB(NOW(), INTERVAL 3 MONTH)
-            GROUP BY B.ISBN
+            GROUP BY B.ISBN, B.Title
             ORDER BY TotalCopiesSold DESC
             LIMIT 10
         `;
@@ -571,6 +622,21 @@ app.get('/admin/reports/replenishment/:isbn', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+function validBook(title, price, stock) {
+    return typeof title === 'string' && title.trim().length > 0 && title.length <= 255 &&
+        typeof price === 'number' && Number.isFinite(price) && price >= 0 && price <= 99999999.99 &&
+        Number.isInteger(stock) && stock >= 0 && stock <= 2147483647;
+}
+
+app.use((err, req, res, next) => {
+    console.error(err.message);
+    res.status(err.status === 400 ? 400 : 500).json({ error: 'Request could not be completed' });
 });
+
+if (require.main === module) {
+    app.listen(PORT, '127.0.0.1', () => {
+        console.log(`Server is running on http://localhost:${PORT}`);
+    });
+}
+
+module.exports = app;
